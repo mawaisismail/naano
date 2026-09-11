@@ -1,17 +1,20 @@
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/app/Sidebar";
 import { getCurrentUser } from "@/lib/session";
-import { logout } from "@/app/login/actions";
+import { logout } from "@/lib/actions/auth";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Signed in already, guaranteed by (authenticated)/layout.tsx; this call is
+  // deduped with that one by React cache, so it costs no extra query.
   const user = await getCurrentUser();
+  if (!user) redirect("/login");
 
-  // The brand app is behind auth. A creator who lands here goes to their own side.
-  if (!user) redirect("/login?next=/app");
+  // The only rule left for this section: a creator who lands here belongs on
+  // their own side of the marketplace.
   if (user.role !== "brand") redirect("/studio");
 
   return (

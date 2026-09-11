@@ -29,14 +29,19 @@ marketplace is not reviewable from one side, so both are seeded:
 | Creator | `creator@naano.demo` · `demo1234` |
 
 ```bash
+# Postgres 17, or any Postgres you already have
+docker run -d --name naano-db -p 5432:5432 -e POSTGRES_PASSWORD=naano postgres:17
+
+cp .env.example .env   # DATABASE_URL already points at the container above
 npm install
-npm run db:push     # create the local SQLite database
-npm run db:seed     # demo accounts, a live campaign, click history
+npm run db:push        # create the tables
+npm run db:seed        # demo accounts, a live campaign, click history
 npm run dev
 ```
 
-No signup, no cloud database, no API keys. SQLite lives in the repo root and is
-gitignored.
+Postgres is the only supported database — locally, in CI and in production.
+There is no second provider and no datasource switching, so the engine the
+tests run against is the engine that serves production.
 
 ---
 
@@ -118,26 +123,44 @@ publish somebody else's booking.
 
 ## Stack
 
-Next.js 16 (App Router) · TypeScript · Tailwind v4 · Prisma 7 · SQLite · Vitest
+Next.js 16 (App Router) · TypeScript · Tailwind v4 · Prisma 7 · Postgres · Vitest
 
 Design tokens are taken from naano's live CSS: `#1652f0` brand, Plus Jakarta
 Sans + Inter, the soft sky-to-white gradients.
 
-## Deploying
+## Routing and the authentication boundary
 
-SQLite is for local development only — serverless filesystems are read-only and
-ephemeral, so a deployed SQLite database loses its click history between
-invocations and the attribution demo stops working.
+Routes are split into two groups. Route groups are a folder convention only —
+neither name appears in a URL, so every path is unchanged.
 
-```bash
-npm run use:postgres        # flips the schema provider
-# set DATABASE_URL to a Postgres URL (Neon, Vercel Postgres, …)
-npx prisma db push
-npm run db:seed
+```
+src/app/(public)/          /, /creators, /agencies, /blog, /free-tools,
+                           /marketplace, /login, /register, /r/[code], …
+src/app/(authenticated)/   /app/**   brand dashboard
+                           /studio/** creator studio
+src/proxy.ts               the edge gate
+src/lib/routes.ts          the one list both of them read
 ```
 
-`npm run use:sqlite` switches back. The driver adapter picks itself from the
-`DATABASE_URL` scheme, so no application query changes either way.
+Authentication is enforced in two places, deliberately:
+
+| | |
+|---|---|
+| `src/proxy.ts` | Next 16 renamed Middleware to **Proxy**; same model, new file convention. Runs on every matched navigation, so it only asks whether a session cookie *exists* and redirects signed-out traffic to `/login?next=…`. Per the Next docs, Proxy is for optimistic checks, never for authorization. |
+| `src/app/(authenticated)/layout.tsx` | The real check. Verifies the cookie signature and loads the user, so a forged or expired cookie that sails past the proxy is stopped here. Every section added to the group inherits it. |
+
+Both read `PROTECTED_PREFIXES` from `src/lib/routes.ts`, so a new protected
+section cannot be added to the router and forgotten at the gate.
+
+## Deploying
+
+Set `DATABASE_URL` to a Postgres connection string. On Vercel, attaching a
+Postgres store is enough — it injects `POSTGRES_PRISMA_URL`, which the app
+picks up on its own. Set `SESSION_SECRET` to at least 32 random characters
+(`openssl rand -base64 32`); the app refuses to start without it.
+
+`npm run build` pushes the schema and seeds only if the database is empty, so a
+redeploy never wipes what a reviewer just did.
 
 ## Tests
 
@@ -145,9 +168,19 @@ npm run db:seed
 npm test
 ```
 
-57 specs. Unit tests for the pure modules, integration tests for attribution
-against a real database built from the real schema — a migration that breaks
-per-creator attribution fails the suite.
+91 specs. Unit tests for the pure modules — including the route map that the
+authentication boundary is built on — plus integration tests for attribution
+against a real Postgres database built from the real schema, so a migration
+that breaks per-creator attribution fails the suite.
+
+The integration tests provision a throwaway `naano_test_<random>` schema, push
+the real Prisma schema into it and drop it afterwards, so they can point at a
+database that holds real data without touching it. With no Postgres configured
+they skip and the rest of the suite still runs; CI always supplies one.
+
+```bash
+git config core.hooksPath .githooks   # arm the pre-commit secret scan
+```
 
 ## Agent logs
 

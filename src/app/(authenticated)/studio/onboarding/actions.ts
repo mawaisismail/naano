@@ -15,6 +15,18 @@ const int = (v: FormDataEntryValue | null, min: number, max: number) => {
 const str = (v: FormDataEntryValue | null, max: number) =>
   String(v ?? "").trim().slice(0, max);
 
+/**
+ * The wizard posts these as one comma-joined field. The column is a Postgres
+ * text[], so the string is split at this boundary and never stored joined —
+ * the database holds the list, not a delimiter convention the reader has to
+ * know about.
+ */
+const list = (v: FormDataEntryValue | null, max: number) =>
+  str(v, max)
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+
 export async function completeOnboarding(formData: FormData) {
   const user = await requireCreator();
   if (!user) redirect("/login?next=/studio/onboarding");
@@ -35,8 +47,8 @@ export async function completeOnboarding(formData: FormData) {
       country: str(formData.get("country"), 60),
       countryCode: str(formData.get("countryCode"), 2).toUpperCase(),
       flag: str(formData.get("flag"), 8) || "🌍",
-      verticals: str(formData.get("verticals"), 120),
-      icp: str(formData.get("icp"), 160),
+      verticals: list(formData.get("verticals"), 120),
+      icp: list(formData.get("icp"), 160),
       followers: int(formData.get("followers"), 0, 5_000_000),
       medianViews: int(formData.get("medianViews"), 0, 20_000_000),
       postCost: int(formData.get("postCost"), 20, 5000),

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Creator } from "@/lib/creators";
 import { draftBrief, OBJECTIVES, type ObjectiveId } from "@/lib/brief";
-import { createCampaign } from "@/app/app/campaigns/actions";
+import { createCampaign } from "@/app/(authenticated)/app/campaigns/actions";
 import { euro, compact } from "@/lib/format";
 
 export function NewCampaignForm({

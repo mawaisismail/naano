@@ -19,17 +19,22 @@ const QUOTE =
  */
 export function Testimonial() {
   const ref = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0);
+
+  // Resolved once, lazily, rather than set from inside the effect: someone who
+  // asked for reduced motion should get the finished text on the very first
+  // paint, not a fully-dimmed block that snaps to lit a frame later.
+  const [reduceMotion] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+  const [scrolled, setScrolled] = useState(0);
+  const progress = reduceMotion ? 1 : scrolled;
 
   useEffect(() => {
+    if (reduceMotion) return;
     const el = ref.current;
     if (!el) return;
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      setProgress(1);
-      return;
-    }
 
     let frame = 0;
     const onScroll = () => {
@@ -39,7 +44,7 @@ export function Testimonial() {
         const vh = window.innerHeight;
         // 0 when the block enters from below, 1 once it has risen past the middle
         const p = (vh * 0.85 - r.top) / (vh * 0.55);
-        setProgress(Math.min(1, Math.max(0, p)));
+        setScrolled(Math.min(1, Math.max(0, p)));
       });
     };
 
@@ -51,7 +56,7 @@ export function Testimonial() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, []);
+  }, [reduceMotion]);
 
   const words = QUOTE.split(" ");
   const lit = progress * (words.length + 4);

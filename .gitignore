@@ -43,12 +43,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local sqlite (DATABASE_URL is file:./dev.db, resolved from the repo root)
-dev.db
-dev.db-journal
-dev.db-wal
-dev.db-shm
-prisma/dev.db
 
 
 # .env.example is committed on purpose: it documents the required

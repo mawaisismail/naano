@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { login } from "./actions";
+import { login } from "@/lib/actions/auth";
 import { authInput } from "@/components/AuthPanel";
 
 export function LoginForm({ next }: { next?: string }) {

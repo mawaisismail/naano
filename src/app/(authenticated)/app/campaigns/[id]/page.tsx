@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { euro, compact } from "@/lib/format";
 import { StatusPill } from "@/components/app/StatusPill";
-import { advanceDeal } from "@/app/app/deals/actions";
+import { advanceDeal } from "@/app/(authenticated)/app/deals/actions";
 import { CopyLink } from "@/components/app/CopyLink";
 import { SubmitButton } from "@/components/app/SubmitButton";
 import { LiveStatsProvider, LiveCount, LiveSum, LivePulse } from "@/components/app/LiveStats";

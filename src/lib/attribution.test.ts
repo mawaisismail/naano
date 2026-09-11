@@ -1,12 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { PrismaClient } from "@prisma/client";
-import { testClient } from "@/test/db";
+import { testClient, hasTestDb } from "@/test/db";
 import { makeTrackingCode } from "./tracking";
 
 /**
- * Attribution is the product. These run against a real database built from the
- * real schema, because the claim being tested — "a click resolves to the
- * individual creator" — is a claim about the data model, not about a function.
+ * Attribution is the product. These run against a real Postgres database built
+ * from the real schema, because the claim being tested — "a click resolves to
+ * the individual creator" — is a claim about the data model, not about a
+ * function.
+ *
+ * They skip when no Postgres is configured, so `npm test` stays green on a
+ * fresh clone; CI always supplies one, so they always run there.
  */
 let db: PrismaClient;
 let brandId: string;
@@ -69,7 +73,7 @@ async function recordClick(code: string) {
   });
 }
 
-describe("click attribution", () => {
+describe.skipIf(!hasTestDb())("click attribution", () => {
   it("attributes a click to the one creator whose link was used", async () => {
     const c = await campaignWith([100, 200, 300]);
     const [a, b, cc] = c.deals;

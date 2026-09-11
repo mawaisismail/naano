@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
-import { logout } from "@/app/login/actions";
+import { logout } from "@/lib/actions/auth";
 
 export default async function StudioLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Signed in already, guaranteed by (authenticated)/layout.tsx.
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/studio");
+  if (!user) redirect("/login");
   if (user.role !== "creator") redirect("/app");
 
   return (

@@ -32,6 +32,13 @@ if (!pg.test(appUrl)) {
   process.exit(0);
 }
 
+// A build on a developer's machine must not require a running database: the
+// compile step does not query anything. On a host it must, because a deploy
+// that skips the schema push serves 500s from every page.
+const onHost = Boolean(
+  process.env.CI || process.env.VERCEL || process.env.GITHUB_ACTIONS
+);
+
 // Schema changes must not go through pgbouncer; it does not support the
 // session-level statements they issue.
 const migrateUrl = direct || appUrl;
@@ -43,7 +50,16 @@ const run = (cmd, url) =>
   });
 
 console.log("[deploy-db] pushing schema…");
-run("npx prisma db push", migrateUrl);
+try {
+  run("npx prisma db push", migrateUrl);
+} catch (err) {
+  if (onHost) throw err;
+  console.log(
+    "[deploy-db] database unreachable — skipping (local build).\n" +
+      "            Start Postgres and run `npm run db:push` before `npm run dev`."
+  );
+  process.exit(0);
+}
 
 console.log("[deploy-db] checking whether the database is empty…");
 let userCount = null;

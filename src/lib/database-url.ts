@@ -1,11 +1,10 @@
 /**
- * Resolve the database URL from whatever the host actually provides.
+ * Resolve the Postgres URL from whatever the host actually provides.
  *
  * Vercel Postgres does NOT set DATABASE_URL. It injects POSTGRES_PRISMA_URL
  * (pooled, pgbouncer — the right one for serverless), POSTGRES_URL, and
  * POSTGRES_URL_NON_POOLING (direct, for migrations). Reading only DATABASE_URL
- * would silently fall through to SQLite in production, which fails at connect
- * time rather than at build time and is miserable to debug.
+ * would throw in production even though a perfectly good database is attached.
  *
  * Order matters: an explicit DATABASE_URL wins, then the pooled Vercel URL,
  * then the plain one.
@@ -22,14 +21,25 @@ export function resolveDatabaseUrl(env: Env = process.env): string {
   // An explicit Postgres DATABASE_URL always wins.
   if (explicit && isPostgresUrl(explicit)) return explicit;
 
-  // A managed Postgres URL beats a *SQLite* DATABASE_URL. Next loads .env into
-  // the environment, and .env carries the local file: URL — so without this, a
-  // developer's local file would quietly override the real database and the
-  // build would pick the wrong driver. If a Postgres database is attached, it
-  // is the one that was meant.
+  // Anything else in DATABASE_URL is a mistake worth naming rather than
+  // working around.
+  if (explicit && !vercel) {
+    throw new Error(
+      `DATABASE_URL is not a Postgres connection string: ${explicit.split(":")[0]}: — ` +
+        "this project runs on Postgres only."
+    );
+  }
+
+  // A managed Postgres URL beats anything else DATABASE_URL happens to hold:
+  // if a database is attached to the deployment, it is the one that was meant.
   if (vercel) return vercel;
 
-  return explicit || "file:./dev.db";
+  // No silent fallback. A missing URL has to fail here, loudly, rather than at
+  // the first query in a request handler.
+  throw new Error(
+    "No database URL. Set DATABASE_URL to a Postgres connection string " +
+      "(postgres://…), or deploy with POSTGRES_PRISMA_URL set by the host."
+  );
 }
 
 /**

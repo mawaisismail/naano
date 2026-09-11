@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { makeAdapter } from "../src/lib/adapter";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { resolveDatabaseUrl } from "../src/lib/database-url";
 import { CREATORS } from "../src/lib/creators";
 import { hashPassword } from "../src/lib/password";
@@ -8,7 +8,7 @@ import { makeTrackingCode } from "../src/lib/tracking";
 // Same driver selection as the app, so seeding a deployed Postgres database
 // works with no change beyond DATABASE_URL.
 const prisma = new PrismaClient({
-  adapter: makeAdapter(resolveDatabaseUrl()),
+  adapter: new PrismaPg({ connectionString: resolveDatabaseUrl() }),
 });
 
 // Public demo credentials. These are printed on the login page on purpose:

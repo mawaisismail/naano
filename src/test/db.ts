@@ -1,12 +1,17 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-/** Client bound to the throwaway test database, never the dev one. */
+/** True when globalSetup provisioned a throwaway Postgres schema. */
+export const hasTestDb = () => Boolean(process.env.TEST_SCHEMA_URL);
+
+/** Client bound to the throwaway test schema, never a real one. */
 export function testClient() {
-  const url = process.env.TEST_DATABASE_URL;
-  if (!url) throw new Error("TEST_DATABASE_URL missing — globalSetup did not run");
-  if (!url.includes("naano-test-")) {
-    throw new Error(`refusing to run tests against a non-test database: ${url}`);
+  const url = process.env.TEST_SCHEMA_URL;
+  if (!url) throw new Error("TEST_SCHEMA_URL missing — globalSetup did not run");
+  // The guard is the point: a mistyped URL must not let a test suite run
+  // DELETE against production data.
+  if (!/[?&]schema=naano_test_/.test(url)) {
+    throw new Error(`refusing to run tests against a non-test schema: ${url}`);
   }
-  return new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }) });
+  return new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 }

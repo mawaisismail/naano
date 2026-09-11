@@ -5,9 +5,6 @@ import { slugify } from "@/lib/slug";
 
 export { slugify };
 
-const split = (s: string | null | undefined) =>
-  (s ?? "").split(",").map((x) => x.trim()).filter(Boolean);
-
 /** Has this creator finished onboarding and therefore got a marketplace card? */
 export const isOnboarded = (u: Pick<User, "onboardedAt" | "creatorSlug">) =>
   Boolean(u.onboardedAt && u.creatorSlug);
@@ -35,7 +32,7 @@ export function toCreator(u: User): Creator | null {
     country: u.country ?? "",
     countryCode: u.countryCode ?? "",
     flag: u.flag ?? "🌍",
-    verticals: split(u.verticals),
+    verticals: u.verticals,
     bio: u.bio ?? "",
     followers,
     medianViews,
@@ -47,7 +44,7 @@ export function toCreator(u: User): Creator | null {
     engagementRate: medianViews > 0 ? Number(((reactions / medianViews) * 100).toFixed(2)) : 0,
     reactionsPerPost: reactions,
     commentsPerPost: u.commentsPerPost ?? 0,
-    icp: split(u.icp),
+    icp: u.icp,
   };
 }
 

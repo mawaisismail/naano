@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { register } from "@/app/login/actions";
+import { register } from "@/lib/actions/auth";
 import { authInput } from "@/components/AuthPanel";
 import { cx } from "@/lib/format";
 

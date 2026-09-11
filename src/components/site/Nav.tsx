@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { ResourcesMenu } from "./ResourcesMenu";
 import { RESOURCES } from "@/lib/nav-links";
-import { logout } from "@/app/login/actions";
+import { logout } from "@/lib/actions/auth";
 import { MobileMenu } from "./MobileMenu";
 import { NavShell } from "./NavShell";
 

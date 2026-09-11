@@ -4,15 +4,19 @@
 // runtime, so they are not rows. A Deal references a creator by its seed id.
 // That keeps browsing the marketplace working with no database attached.
 //
-// SQLite for local development. SQLite has no enums, so status fields are
-// strings with the allowed values documented beside them.
+// Postgres everywhere — local, CI and production. There is no second provider
+// and no datasource switching: the database the tests run against is the same
+// engine that serves production, so a query that works in CI works deployed.
+//
+// Status fields are strings with the allowed values documented beside them and
+// enforced by the lifecycle state machine in src/lib/lifecycle.ts.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   // Connection URL lives in prisma.config.ts (Prisma 7 moved it out of the schema).
 }
 
@@ -43,9 +47,10 @@ model User {
   country          String?
   countryCode      String?
   flag             String?
-  // comma separated so the same column works on SQLite and Postgres
-  verticals        String?
-  icp              String?
+  // Native Postgres text[]. These were comma-joined strings only because the
+  // project used to have to run on SQLite as well, which has no array type.
+  verticals        String[]
+  icp              String[]
   avatarUrl        String?
   followers        Int?
   medianViews      Int?

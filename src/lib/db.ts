@@ -1,21 +1,17 @@
 import { PrismaClient } from "@prisma/client";
-import { makeAdapter } from "@/lib/adapter";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { resolveDatabaseUrl } from "@/lib/database-url";
 
 /**
- * Prisma 7 takes the connection through a driver adapter rather than a URL in
- * the schema, so the driver is chosen from the URL scheme:
+ * The Prisma client, bound to Postgres through the pg driver adapter.
  *
- *   file:./dev.db                     -> SQLite   (local development)
- *   postgres://... | postgresql://... -> Postgres (deployed)
- *
- * SQLite cannot run on Vercel — serverless filesystems are read-only and
- * ephemeral, so the click history would vanish between invocations and the
- * attribution demo would break.
+ * Prisma 7 takes the connection through an adapter rather than a URL in the
+ * schema. There is exactly one adapter here on purpose: a second provider
+ * means the engine the tests run against is not the engine that serves
+ * production, and the differences surface as production-only bugs.
  */
-const url = resolveDatabaseUrl();
-
-const makeClient = () => new PrismaClient({ adapter: makeAdapter(url) });
+const makeClient = () =>
+  new PrismaClient({ adapter: new PrismaPg({ connectionString: resolveDatabaseUrl() }) });
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
