@@ -1,0 +1,116 @@
+// Only the MUTABLE half of the product lives here.
+//
+// Creators are static seed data in src/lib/creators.ts — they do not change at
+// runtime, so they are not rows. A Deal references a creator by its seed id.
+// That keeps browsing the marketplace working with no database attached.
+//
+// SQLite for local development. SQLite has no enums, so status fields are
+// strings with the allowed values documented beside them.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  // Connection URL lives in prisma.config.ts (Prisma 7 moved it out of the schema).
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  // "brand" | "creator"
+  role         String
+  // brands only
+  companyName  String?
+  // creators only: the slug this creator is booked under. For the demo account
+  // it points at a seeded creator; for a real signup it is generated at
+  // onboarding and must not collide with a seeded one.
+  // Not a database unique constraint: uniqueness must also hold against the
+  // seeded creators in src/lib/creators.ts, which are not rows, so the check
+  // lives in reserveCreatorSlug() where it can see both sets.
+  creatorSlug  String?
+  createdAt    DateTime   @default(now())
+
+  // ---- creator profile, filled in by the onboarding wizard ----------------
+  // Null until onboarding completes. A creator with no profile has no
+  // marketplace card, so no brand can find or book them.
+  onboardedAt      DateTime?
+  headline         String?
+  bio              String?
+  country          String?
+  countryCode      String?
+  flag             String?
+  // comma separated so the same column works on SQLite and Postgres
+  verticals        String?
+  icp              String?
+  avatarUrl        String?
+  followers        Int?
+  medianViews      Int?
+  postCost         Int?
+  reactionsPerPost Int?
+  commentsPerPost  Int?
+
+  campaigns    Campaign[]
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  brand       User     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId     String
+  name        String
+  objective   String
+  // the AI-drafted brief, rendered from the campaign inputs
+  keyMessages String
+  guidelines  String
+  landingUrl  String
+  // "draft" | "live" | "complete"
+  status      String   @default("draft")
+  createdAt   DateTime @default(now())
+
+  deals       Deal[]
+
+  @@index([brandId])
+}
+
+model Deal {
+  id          String   @id @default(cuid())
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId  String
+  // seed creator id, e.g. "cr_007" — not a foreign key by design
+  creatorId   String
+  creatorSlug String
+  creatorName String
+  price       Int
+  // "invited" | "accepted" | "declined" | "draft" | "scheduled" | "live" | "paid"
+  status      String   @default("invited")
+  // the short code behind /r/<code>; this is what makes attribution per-creator
+  trackingCode String  @unique
+  postUrl     String?
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  clicks      Click[]
+
+  @@index([campaignId])
+  @@index([creatorSlug])
+}
+
+model Click {
+  id           String   @id @default(cuid())
+  deal         Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId       String
+  trackingCode String
+  referer      String?
+  userAgent    String?
+  // Salted hash of the client IP, never the IP itself. Used only to collapse
+  // rapid repeats from one source; not reversible and not for identification.
+  ipHash       String?
+  createdAt    DateTime @default(now())
+
+  @@index([dealId])
+  @@index([trackingCode])
+  @@index([dealId, ipHash, createdAt])
+}
