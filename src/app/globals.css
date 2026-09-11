@@ -1,0 +1,301 @@
+@import "tailwindcss";
+
+/* Design tokens read off naano.com's live CSS. */
+@theme {
+  --color-brand: #1652f0;
+  --color-brand-strong: #1240d0;
+  --color-brand-soft: #e8f0fe;
+  --color-nn-blue: #315fbe;
+  --color-accent: #2563eb;
+  --color-accent-deep: #1d4ed8;
+
+  /* Taken from naano's own stylesheet: their ink is warm, not cool slate. */
+  --color-ink: #111318;        /* --nn-ink */
+  --color-ink-900: #37352f;    /* --lp-ink */
+  --color-ink-950: #0b0d10;
+  --color-muted: #787774;      /* --lp-ink-soft */
+  --color-grey: #b4b4b0;       /* --lp-ink-mute */
+  --color-line: #e8e8e4;
+  --color-surface: #f6f6f4;
+  --color-success: #16a34a;
+  --color-warn: #d97706;
+
+  --font-display: var(--font-jakarta), "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 1rem;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Keyboard users need to see where they are. :focus-visible keeps the ring
+     off mouse clicks, so this costs nothing visually for pointer users. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* The live counter pulses and spinners spin. Respect the OS setting. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  body {
+    background: #ffffff;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  /* naano's hero is a photographic sky. Rebuilt in CSS rather than shipping
+     their image: a blue gradient with soft white cloud masses blurred over it.
+     Layered radial gradients, so it scales and costs no bytes. */
+  .nn-sky {
+    /* naano renders the hero sky as a full-bleed photograph
+       (.lp-cloud-scene > .lp-cloud-image, object-fit: cover). Matched here.
+       The source PNG is 3MB; resized and re-encoded to ~130KB. */
+    position: relative;
+    background-color: #cfe7fa;
+    isolation: isolate;
+  }
+  .nn-sky::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image: url("/lp/hero-clouds.jpg");
+    background-size: cover;
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    pointer-events: none;
+  }
+  /* fade the photograph into the page below it, as naano does */
+  .nn-sky::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 22%;
+    z-index: 1;
+    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #ffffff 96%);
+    pointer-events: none;
+  }
+  .nn-sky > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Trust-logo marquee, copied from naano's computed styles:
+     .naano-trust-track runs @keyframes naanoMarquee 0% -> -50% over 26s linear,
+     with the row duplicated so the wrap is seamless, and the viewport masked
+     at 8%/92%. Logos: 19px tall, 0.68 opacity, grayscale(1) contrast(1.08). */
+  .nn-marquee-viewport {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0), #000 8%, #000 92%, rgba(0,0,0,0));
+    mask-image: linear-gradient(90deg, rgba(0,0,0,0), #000 8%, #000 92%, rgba(0,0,0,0));
+  }
+  .nn-marquee-track {
+    display: inline-flex;
+    align-items: center;
+    height: 48px;
+    white-space: nowrap;
+    animation: naanoMarquee 26s linear infinite;
+  }
+  .nn-marquee-viewport:hover .nn-marquee-track {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nn-marquee-track { animation: none; }
+  }
+  .nn-marquee-logo {
+    /* height comes per-logo from the markup; naano sizes each brand
+       individually so they read at the same optical weight */
+    width: auto;
+    object-fit: contain;
+    opacity: 0.68;
+    filter: grayscale(1) contrast(1.08);
+  }
+
+  /* Design frame: authored at 1672px, zoomed to the viewport. See ScaleFrame. */
+  .nn-scale-frame {
+    width: 100%;
+    margin-inline: auto;
+  }
+  @media (min-width: 1024px) {
+    .nn-scale-frame {
+      width: 1672px;
+      zoom: 0.861244; /* replaced per-viewport by ScaleFrame on mount */
+    }
+  }
+
+  /* the same wash, scaled down, for card headers */
+  .nn-sky-strip {
+    background:
+      radial-gradient(60% 80% at 20% 110%, rgba(255,255,255,.95) 0%, rgba(255,255,255,0) 60%),
+      radial-gradient(60% 80% at 80% 115%, rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 60%),
+      linear-gradient(180deg, #cfe6f9 0%, #e8f3fd 60%, #f7fbff 100%);
+  }
+  .nn-card {
+    background: #fff;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.10);
+  }
+  /* Small uppercase tracked eyebrow: "CASE STUDY", "THE RESULTS" */
+  .nn-eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+}
+
+@keyframes naanoMarquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* --------------------------------------------------------------------------
+   naano's marketplace-signal animations, copied from their stylesheet.
+   Each element carries its own --avatar-rot / --flag-rot so the drift keeps
+   the tilt it was authored with instead of snapping to zero.
+   -------------------------------------------------------------------------- */
+@keyframes lpMarketplaceAvatarFloat {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--avatar-rot)); }
+  50%      { transform: translate3d(0, -7px, 0) rotate(calc(var(--avatar-rot) + 1deg)); }
+}
+
+@keyframes lpMarketplaceFlagFloat {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--flag-rot)); }
+  45%      { transform: translate3d(3px, -6px, 0) rotate(calc(var(--flag-rot) + 2deg)); }
+  75%      { transform: translate3d(-2px, -2px, 0) rotate(calc(var(--flag-rot) - 1deg)); }
+}
+
+@keyframes lpMarketplaceMatchDash {
+  100% { stroke-dashoffset: -54px; }
+}
+
+@keyframes lpMarketplaceScorePulse {
+  0%, 100% { transform: translate(-50%) scale(1);    box-shadow: 0 12px 28px #30576c24; }
+  50%      { transform: translate(-50%) scale(1.06); box-shadow: 0 16px 34px #30576c33; }
+}
+
+.nn-avatar-float { animation: lpMarketplaceAvatarFloat 5.2s ease-in-out infinite; }
+.nn-flag-float   { animation: lpMarketplaceFlagFloat 4.6s ease-in-out infinite; }
+.nn-match-dash   { animation: lpMarketplaceMatchDash 2.4s linear infinite; }
+.nn-score-pulse  { animation: lpMarketplaceScorePulse 3.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nn-avatar-float,
+  .nn-flag-float,
+  .nn-match-dash,
+  .nn-score-pulse { animation: none; }
+}
+
+/* naano's journey route: dashes flow along the curve that threads the five steps */
+@keyframes lpRouteFlow {
+  to { stroke-dashoffset: -170px; }
+}
+.nn-route-flow { animation: lpRouteFlow 5.5s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nn-route-flow { animation: none; }
+}
+
+/* --------------------------------------------------------------------------
+   "Real teams. Measurable pipeline." — the two proof cards are very slightly
+   rotated on naano, and the video card is nudged down and right so it sits
+   lower than the case study it overlaps. Desktop only: below lg the cards
+   stack, and the offset would just read as a broken gap.
+   -------------------------------------------------------------------------- */
+@media (min-width: 1024px) {
+  .nn-proof-card--video {
+    transform: translate(14.4756px, 41.8385px) rotate(-0.65deg);
+  }
+
+  .nn-proof-card--case {
+    transform: rotate(0.28deg);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   naano's section headings are fluid, not fixed. Measured on their page at
+   1180 / 1440 / 1672 the size tracks the viewport and then caps:
+
+     most sections   min(3.6vw, 56px)   line-height 1.03   tracking -0.045em
+     marketplace     min(5.2vw, 76px)   line-height 0.99   tracking -0.052em
+     book / cta      min(4vw,   60px)   line-height 1.03   tracking -0.045em
+
+   Only from lg up — below that each section keeps its own phone size.
+   -------------------------------------------------------------------------- */
+@media (min-width: 1024px) {
+  .nn-h2 {
+    font-size: min(3.6vw, 56px);
+    line-height: 1.03;
+    letter-spacing: -0.045em;
+  }
+
+  .nn-h2--marketplace {
+    font-size: min(5.2vw, 76px);
+    line-height: 0.99;
+    letter-spacing: -0.052em;
+  }
+
+  .nn-h2--book {
+    font-size: min(4vw, 60px);
+    line-height: 1.03;
+    letter-spacing: -0.045em;
+  }
+}
+
+
+/* --------------------------------------------------------------------------
+   The marketplace mockup. naano drops a 1664-wide screenshot of the app into
+   the browser shell, so it shrinks with the shell on small screens instead of
+   reflowing. Ours renders the live app at that same 1664 canvas and scales it
+   by the shell's own width, which is what container units are for.
+   -------------------------------------------------------------------------- */
+.nn-app-shell {
+  container-type: inline-size;
+}
+
+.nn-app-screen {
+  /* length / length gives a number; length / number would give a length and
+     the whole declaration is dropped as invalid. */
+  height: calc(711px * (100cqw / 1664px));
+}
+
+.nn-app-canvas {
+  width: 1664px;
+  transform-origin: top left;
+  transform: scale(calc(100cqw / 1664px));
+}
+
+
+/* --------------------------------------------------------------------------
+   naano's content pages — /free-tools and /blog — are not inside the 1672
+   design frame (their document height is identical at 1440 and 1672) and they
+   set body copy in Plus Jakarta Sans rather than the Inter the marketing pages
+   use. Measured on their pages:
+
+     /free-tools   h1 60/63 w600 -2.4px · h2 20/27.5 w600 -0.4px · p 19/30.875
+     /blog         h1 68/69.36 w300      ·                        p 18/29.25
+   -------------------------------------------------------------------------- */
+.nn-doc {
+  font-family: var(--font-display);
+}
