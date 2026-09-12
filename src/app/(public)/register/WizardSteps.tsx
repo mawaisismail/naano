@@ -392,6 +392,15 @@ export function StepProfessional({ country }: { country: string | null }) {
       <button disabled={pending} className={CTA}>
         {pending ? "Saving…" : "Save and go to my workspace"}
       </button>
+
+      {/* The same escape hatch as the panel above, repeated at the bottom of a
+          long form. Someone who scrolls all the way down and decides they do
+          not have the details to hand should not have to scroll back up to
+          find the way out. formAction is used rather than onClick so it still
+          works before hydration. */}
+      <button type="submit" formAction={finishLater} className={GHOST}>
+        Complete later — go to my dashboard
+      </button>
     </form>
   );
 }
