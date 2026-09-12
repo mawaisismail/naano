@@ -110,7 +110,16 @@ section says so.
 ### 4d. Backfill from the session transcript — DONE
 
 `.agent-logs/` is populated by `scripts/backfill-agent-log.mjs`, reading Claude
-Code's own JSONL transcript for the build session.
+Code's own JSONL transcript. Two sessions built this project and **both** are
+published:
+
+| File | Session | Exchanges |
+| --- | --- | --- |
+| `2026-09-09_18-28-29_4200849e….md` | the kickoff: the brief, and this harness | 4 |
+| `2026-09-09_19-08-47_6616eb0a….md` | the build | 89 |
+
+93 exchanges in total. The kickoff session ran in a different directory, which
+is why it is a separate file and why neither was captured live (see section 5).
 
 What that is: the prompts and final responses in the committed log are read
 **verbatim from disk**. Claude Code records every session; the material is
@@ -128,15 +137,44 @@ environment values live.
 Harness-injected `<system-reminder>` blocks are stripped, because the hook's
 `prompt` field never contained them — they are not user text.
 
-Verified before committing:
-- 9 real prompts exist in the transcript; 9 prompt/response pairs were written.
-  Nothing was silently dropped.
+Four kinds of message arrive in the user stream without anyone typing them, and
+each would otherwise be published as if the user had written it. All four are
+dropped: the multi-thousand-word **compaction summary** the harness writes when
+a session runs out of context, **background-task notifications**, the
+**`[Request interrupted by user]`** marker, and slash-command plumbing. What
+remains is what a person typed.
+
+Verified before committing, by `scripts/verify-agent-log.mjs` rather than by
+eye. It re-reads the transcript, lists the typed prompts, and fails on three
+distinct faults — a prompt **missing** from the log, a logged prompt whose text
+is **altered**, and an **extra** entry with no typed prompt behind it:
+
+```
+$ node scripts/verify-agent-log.mjs <transcript> <log>
+transcript: 90 typed prompt(s)
+log:        89 prompt entr(ies), 89 response entr(ies)
+
+OK: every typed prompt is published, and nothing else is.
+```
+
+The 90th is the exchange that was in flight while the log was written; its
+response did not exist yet, and the next run picks it up. Run against the
+earlier version of this log, the same check reported 22 missing prompts and 3
+injected notices published as user text — which is why it exists.
+
+Also verified:
 - The output contains no `tool_result`, no `tool_use`, and no function-call
   markers.
-- The repo's own pre-commit secret scan passes on it.
-- Two other sessions exist in the same transcript directory — a gcloud install
-  and an SSH key creation. Both are unrelated to this project and **excluded**.
-  Only the build session is published.
+- The repo's own pre-commit secret scan passes on both files. It has one
+  narrow exception, added here: a credential-shaped string that already appears
+  in the committed `.env.example` or CI workflow — the local Postgres
+  placeholder `postgres:naano@localhost` — is not a disclosure. The exception
+  reads the **committed** copies, so a placeholder cannot be introduced in the
+  same commit that uses it as an excuse. Everything else still blocks, and that
+  was re-tested with a planted token and a foreign database URL.
+- Other sessions exist in the transcript directories — a gcloud install, an SSH
+  key creation, and client work on an unrelated project. None of them touched
+  this project and none is published.
 
 ## 5. What did not work
 

@@ -9,12 +9,36 @@ staged=$(git diff --cached --name-only --diff-filter=ACM | grep '^\.agent-logs/'
 
 PATTERNS='sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|xox[baprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|mongodb(\+srv)?://[^[:space:]/]*:[^[:space:]@]+@|postgres(ql)?://[^[:space:]/]*:[^[:space:]@]+@|(api[_-]?key|secret|passwd|password|token)[[:space:]]*[=:][[:space:]]*[A-Za-z0-9_\-]{24,}'
 
+# Strings the repo already publishes about itself are not disclosures.
+# .env.example and the CI workflow both carry the local Postgres placeholder
+# (postgres:naano@localhost), so a log that quotes it reveals nothing that is
+# not already committed in plain sight. Anything NOT found there still blocks.
+# This reads the committed copies, so a placeholder cannot be introduced in the
+# same commit it is used to excuse.
+published=$(
+  { git show HEAD:.env.example; git show HEAD:.github/workflows/ci.yml; } 2>/dev/null
+)
+
 hits=0
 while IFS= read -r f; do
   [ -f "$f" ] || continue
-  if out=$(git show ":$f" | grep -nEi "$PATTERNS"); then
+  # -o so each match is judged on its own; a line may hold more than one.
+  matches=$(git show ":$f" | grep -noEi "$PATTERNS" || true)
+  [ -z "$matches" ] && continue
+
+  unexplained=""
+  while IFS= read -r m; do
+    [ -z "$m" ] && continue
+    text=${m#*:}
+    if [ -n "$published" ] && printf '%s' "$published" | grep -qF -- "$text"; then
+      continue
+    fi
+    unexplained="${unexplained}${m}"$'\n'
+  done <<< "$matches"
+
+  if [ -n "$unexplained" ]; then
     echo "BLOCKED: credential-shaped string in $f" >&2
-    echo "$out" | sed 's/^/    /' | cut -c1-160 >&2
+    printf '%s' "$unexplained" | sed 's/^/    /' | cut -c1-160 >&2
     hits=1
   fi
 done <<< "$staged"

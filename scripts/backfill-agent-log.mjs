@@ -46,16 +46,34 @@ const textOf = (content) => {
     .trim();
 };
 
-/** A real typed prompt, as opposed to a tool result or an injected notice. */
+/**
+ * A real typed prompt, as opposed to a tool result or an injected notice.
+ *
+ * Four kinds of record sit in the user stream without a person having typed
+ * them, and every one of them would otherwise be published as if the user had
+ * written it:
+ *
+ *   isCompactSummary   the continuation summary the harness writes when a
+ *                      session runs out of context. It is machine-authored,
+ *                      thousands of words long, and is not a prompt.
+ *   <task-notification> a background command finishing. promptSource "system".
+ *   [Request interrupted…] the marker left when Ctrl-C stops a turn.
+ *   command wrappers    /slash-command plumbing and local-command output.
+ *
+ * What remains is promptSource "typed" or "queued" — a person at a keyboard.
+ */
 const isRealPrompt = (rec) => {
   if (rec.type !== "user") return false;
   if (rec.isMeta) return false;
+  if (rec.isCompactSummary) return false;
   const c = rec.message?.content;
   if (Array.isArray(c) && c.some((b) => b?.type === "tool_result")) return false;
   const t = stripReminders(textOf(c));
   if (!t) return false;
-  // command wrappers and local-command output are harness plumbing, not prompts
-  if (/^<(command-name|command-message|local-command|bash-input)/.test(t)) return false;
+  if (/^<(command-name|command-message|local-command|bash-input|task-notification)/.test(t)) {
+    return false;
+  }
+  if (/^\[Request interrupted by user/.test(t)) return false;
   return true;
 };
 
@@ -130,7 +148,12 @@ let out =
   `  prompts and responses below are read verbatim from Claude Code's own\n` +
   `  transcript for this session. Nothing is authored, summarised or tidied.\n` +
   `  Tool calls, tool results and intermediate steps are excluded, matching what\n` +
-  `  UserPromptSubmit and Stop would have captured.\n` +
+  `  UserPromptSubmit and Stop would have captured. So are the four kinds of\n` +
+  `  message the harness injects into the user stream without a person typing\n` +
+  `  them: compaction summaries, background-task notifications, interrupt\n` +
+  `  markers and slash-command plumbing.\n` +
+  `  The exchange in flight when this ran is not here; it is written by the\n` +
+  `  next run, once its response exists.\n` +
   `---\n`;
 
 complete.forEach((t, i) => {
