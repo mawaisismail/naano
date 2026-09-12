@@ -40,15 +40,35 @@ function Progress({ step }: { step: number }) {
 }
 
 /** The demo disclosure, shown wherever the read's output is displayed. */
-function DemoNote({ source }: { source: string }) {
-  if (source !== "demo") return null;
+/**
+ * Says where the text below came from.
+ *
+ * Both branches render. A brand whose site was actually read should be told
+ * so — it is the difference between trusting the draft and rewriting it — and
+ * a brand that got the generated version must not be left assuming otherwise.
+ * Both read `brandDataSource` off the row rather than a prop set at the call
+ * site, so the note cannot drift from what was stored.
+ */
+function DemoNote({ source, domain }: { source: string; domain: string | null }) {
+  if (source === "demo") {
+    return (
+      <div className="rounded-[12px] border border-[#F2E2C0] bg-[#FDFAF2] px-4 py-3 text-[13px] leading-5 text-[#7A5A1E]">
+        <strong className="font-semibold">Generated, not read.</strong> We could
+        not reach your site just now, so the value proposition and ICPs below
+        were drafted from your domain name. They are stored as{" "}
+        <code className="rounded bg-white/70 px-1">brandDataSource=&quot;demo&quot;</code>.
+        Edit them, or go back and try the URL again.
+      </div>
+    );
+  }
   return (
-    <div className="rounded-[12px] border border-[#F2E2C0] bg-[#FDFAF2] px-4 py-3 text-[13px] leading-5 text-[#7A5A1E]">
-      <strong className="font-semibold">Demo data.</strong> This build has no
-      crawler, so the value proposition and ICPs below were generated from your
-      domain rather than read from the site. They are stored as{" "}
-      <code className="rounded bg-white/70 px-1">brandDataSource=&quot;demo&quot;</code> and
-      are yours to edit.
+    <div className="flex items-start gap-2.5 rounded-[12px] border border-[#CFE0FF] bg-[#F5F8FF] px-4 py-3 text-[13px] leading-5 text-[#1D4ED8]">
+      <Check size={15} strokeWidth={2.4} aria-hidden className="mt-0.5 shrink-0" />
+      <span>
+        <strong className="font-semibold">Read from {domain ?? "your site"}.</strong>{" "}
+        We pulled your public pages and drafted the profile below from them.
+        Everything is yours to edit.
+      </span>
     </div>
   );
 }
@@ -86,6 +106,7 @@ export function BrandWizard({
               valueProp={valueProp ?? ""}
               icps={icps}
               source={source}
+              domain={websiteUrl ? hostOf(websiteUrl) : null}
             />
           )}
         </div>
@@ -103,6 +124,15 @@ export function BrandWizard({
       </div>
     </div>
   );
+}
+
+/** The host as a person would say it: no scheme, no www, no trailing slash. */
+function hostOf(url: string): string | null {
+  try {
+    return new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -233,11 +263,13 @@ function StepProfile({
   valueProp,
   icps,
   source,
+  domain,
 }: {
   company: string | null;
   valueProp: string;
   icps: string[];
   source: string;
+  domain: string | null;
 }) {
   const [state, action, pending] = useActionState<BrandState, FormData>(confirmBrandProfile, null);
   const [value, setValue] = useState(valueProp);
@@ -268,7 +300,7 @@ function StepProfile({
         </p>
       ) : null}
 
-      <DemoNote source={source} />
+      <DemoNote source={source} domain={domain} />
 
       <div>
         <p className="text-xs font-bold uppercase tracking-wide text-[#5C5B57]">Value proposition</p>

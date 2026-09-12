@@ -31,7 +31,7 @@ async function requireBrand() {
 export async function readSite(_prev: BrandState, formData: FormData): Promise<BrandState> {
   const user = await requireBrand();
   const url = String(formData.get("websiteUrl") ?? "");
-  const read = readBrandSite(url);
+  const read = await readBrandSite(url);
   if (!read) return { error: "Enter a website address, like fasttools.com." };
 
   await prisma.user.update({

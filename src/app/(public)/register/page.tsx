@@ -22,6 +22,14 @@ import { isConfigured } from "@/lib/oauth";
 
 export const metadata = { title: "Create your account — Naano" };
 
+/**
+ * Step 1 of brand onboarding crawls the brand's site and puts the result
+ * through a model, which takes about ten seconds and is allowed up to
+ * thirty-five before both halves give up. The platform default of ten would
+ * kill that mid-read and show a failure for a request that was working.
+ */
+export const maxDuration = 60;
+
 export default async function RegisterPage({
   searchParams,
 }: {

@@ -1,12 +1,21 @@
 /**
  * The website read behind step 1 of brand onboarding.
  *
- * naano fetches the brand's site and derives a value proposition and three
- * ICPs from it. We have no crawler and no model to summarise with, so this
- * generates them from the domain instead. Every screen that shows the result
- * says so, and the shape is what a real read would return, so replacing the
- * body of readBrandSite() is the whole of the swap.
+ * This is a real read: Exa extracts the site (and an about or pricing subpage,
+ * because a homepage rarely states who the product is FOR), and a model turns
+ * that into a value proposition and three ideal customer profiles. The result
+ * is labelled `source: "crawler"`, and the UI's demo note disappears on its
+ * own — it renders from that field, not from a hardcoded string.
+ *
+ * When either service is unconfigured, slow or down, the generated version
+ * from the domain is returned instead, labelled `source: "demo"`. A brand
+ * mid-signup must not be blocked by a third party being unreachable, and
+ * pretending the generated text was read from the site would be worse than
+ * saying it was not.
  */
+
+import { readSiteContents } from "@/lib/ai/exa";
+import { generateJson } from "@/lib/ai/cloudflare";
 
 export type BrandRead = {
   company: string;
@@ -64,7 +73,7 @@ function seedFrom(s: string): number {
   return h;
 }
 
-export function readBrandSite(url: string): BrandRead | null {
+export function generatedBrandRead(url: string): BrandRead | null {
   const origin = normaliseSiteUrl(url);
   if (!origin) return null;
 
@@ -92,3 +101,87 @@ export const READ_STEPS = [
   "Identifying your ICP…",
   "Preparing your brand profile…",
 ] as const;
+
+/* --------------------------------------------------------------- real --- */
+
+/** What the model is asked to return. Enforced by the provider, not by hope. */
+const BRAND_SCHEMA = {
+  type: "object",
+  properties: {
+    company: { type: "string" },
+    valueProp: { type: "string" },
+    icps: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+        },
+        required: ["title", "description"],
+      },
+    },
+  },
+  required: ["company", "valueProp", "icps"],
+} as const;
+
+const SYSTEM = [
+  "You characterise B2B companies for a LinkedIn creator marketplace.",
+  "You are given text extracted from a company's own website.",
+  "Write only what the text supports. Never invent funding, customers, headcount or claims.",
+  "The value proposition is 4 to 6 sentences: what the company does, for whom, and why teams adopt it.",
+  "Each ICP is a job title or role that would buy this, with one or two sentences on their situation.",
+  "Return exactly three ICPs, ordered by how central they are to the business.",
+].join(" ");
+
+/**
+ * Read the site for real, or fall back to the generated version.
+ *
+ * Never throws and never returns nothing for a valid URL: the wizard step
+ * after this one has to have something to show.
+ */
+export async function readBrandSite(url: string): Promise<BrandRead | null> {
+  const fallback = generatedBrandRead(url);
+  const origin = normaliseSiteUrl(url);
+  if (!origin || !fallback) return null;
+
+  // Both providers catch their own failures, but a throw from either — a bug,
+  // an unsupported API in some runtime — would take down a sign-up. The point
+  // of the fallback is that nothing here can do that.
+  const pages = await readSiteContents(origin).catch(() => null);
+  if (!pages) return fallback;
+
+  // Label each excerpt with the page it came from: the model does better when
+  // it can tell a pricing page from a landing page.
+  const corpus = pages
+    .map((p) => `--- ${p.title ?? p.url} (${p.url}) ---\n${p.text}`)
+    .join("\n\n")
+    .slice(0, 12_000);
+
+  const drafted = await generateJson<{
+    company?: string;
+    valueProp?: string;
+    icps?: { title?: string; description?: string }[];
+  }>({
+    system: SYSTEM,
+    prompt: `Website content for ${origin}:\n\n${corpus}`,
+    schema: BRAND_SCHEMA,
+  }).catch(() => null);
+
+  const icps = (drafted?.icps ?? [])
+    .filter((i) => i?.title?.trim() && i?.description?.trim())
+    .slice(0, 3)
+    .map((i) => ({ title: i.title!.trim(), description: i.description!.trim() }));
+
+  // A model that answered but said nothing usable is a failed read, not a
+  // result worth showing. Anything short of the full shape falls back.
+  if (!drafted?.valueProp?.trim() || icps.length < 3) return fallback;
+
+  return {
+    company: drafted.company?.trim() || fallback.company,
+    domain: fallback.domain,
+    valueProp: drafted.valueProp.trim(),
+    icps,
+    source: "crawler",
+  };
+}
