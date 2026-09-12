@@ -51,3 +51,21 @@ describe("pgConnection", () => {
     expect(plain.ssl).toBeUndefined();
   });
 });
+
+describe("pool sizing", () => {
+  it("stays small on serverless, where every instance opens its own pool", () => {
+    // 20 connections on the plan: at the pg default of 10, two warm instances
+    // use the lot and the next request looks like a database outage.
+    expect(pgConnection("postgres://u:p@h/db", { VERCEL: "1" }).max).toBeLessThanOrEqual(5);
+  });
+
+  it("is larger for a single long-lived server", () => {
+    expect(pgConnection("postgres://u:p@h/db", {}).max).toBeGreaterThan(5);
+  });
+
+  it("honours an explicit override", () => {
+    expect(pgConnection("postgres://u:p@h/db", { DATABASE_POOL_MAX: "2" }).max).toBe(2);
+    // Nonsense values fall back rather than producing a pool of NaN.
+    expect(pgConnection("postgres://u:p@h/db", { DATABASE_POOL_MAX: "x" }).max).toBe(10);
+  });
+});

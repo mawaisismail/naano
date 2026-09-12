@@ -49,11 +49,37 @@ export function withoutSslMode(url: string): string {
   }
 }
 
-/** connectionString + ssl, agreeing with each other. */
+/**
+ * How many connections one process may hold.
+ *
+ * This matters more than it looks. The managed plan allows 20 connections in
+ * total, and a serverless deployment does not run one process — it runs one
+ * per concurrent request, each opening its own pool. At the pg default of 10,
+ * two warm instances exhaust the whole plan and the third request fails with
+ * "too many clients", which looks like a database outage and is really a
+ * configuration mistake.
+ *
+ * Small per instance is therefore correct on serverless, where breadth comes
+ * from having many instances; a single long-lived server wants the opposite.
+ */
+function poolMax(env: Record<string, string | undefined>): number {
+  const explicit = Number(env.DATABASE_POOL_MAX);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  // VERCEL is set on their build and runtime; AWS_LAMBDA_FUNCTION_NAME covers
+  // the general case of a function-per-request platform.
+  const serverless = Boolean(env.VERCEL || env.AWS_LAMBDA_FUNCTION_NAME);
+  return serverless ? 3 : 10;
+}
+
+/** connectionString + ssl + pool size, all agreeing with each other. */
 export function pgConnection(
   url: string,
   env: Record<string, string | undefined> = process.env
-): { connectionString: string; ssl?: ConnectionOptions } {
+): { connectionString: string; ssl?: ConnectionOptions; max: number } {
   const ssl = databaseSsl(env);
-  return ssl ? { connectionString: withoutSslMode(url), ssl } : { connectionString: url };
+  return {
+    connectionString: ssl ? withoutSslMode(url) : url,
+    ...(ssl ? { ssl } : {}),
+    max: poolMax(env),
+  };
 }
