@@ -81,6 +81,24 @@ model User {
   taxDeclarationAcceptedAt DateTime?
   invoiceMandateAcceptedAt DateTime?
 
+  // ---- payouts, for the Earnings screen -----------------------------------
+  // "bank" | "stripe". Nothing is moved by this build: no payment processor is
+  // connected, so the screen reports the state honestly and the withdraw
+  // button stays disabled until one is.
+  payoutMethod      String   @default("stripe")
+  bankAccountHolder String?
+  bankIban          String?
+  stripeAccountId   String?
+
+  // ---- affiliate program --------------------------------------------------
+  // The code in naano.com/invite/<code>. Unique so a referral resolves to one
+  // person; generated at signup rather than derived from the id, because an id
+  // in a public URL is a free enumeration handle.
+  referralCode      String?  @unique
+  // Who introduced this account, if anyone.
+  referredById      String?
+  referredAt        DateTime?
+
   @@unique([authProvider, providerAccountId])
 
   // ---- creator profile, filled in by the onboarding wizard ----------------
