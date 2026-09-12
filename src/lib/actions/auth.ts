@@ -47,7 +47,11 @@ export async function login(_prev: unknown, formData: FormData) {
 
   // Same message either way — telling the caller which half was wrong is a
   // free account-enumeration oracle.
-  if (!user || !verifyPassword(password, user.passwordHash)) {
+  //
+  // The empty-hash check is load-bearing: an account created through Google or
+  // LinkedIn has no password, and verifyPassword must never be asked to
+  // compare against "" in case a future hash format treats it as a match.
+  if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
     return { error: "That email and password do not match." };
   }
 
@@ -60,9 +64,15 @@ export async function login(_prev: unknown, formData: FormData) {
 export async function register(_prev: unknown, formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const name = String(formData.get("name") ?? "").trim();
   const role = String(formData.get("role") ?? "brand");
   const companyName = String(formData.get("companyName") ?? "").trim();
+  const heardAbout = String(formData.get("heardAbout") ?? "").trim().slice(0, 40);
+
+  // The sign-up form posts the name in halves, which is what both providers
+  // return too, so the two paths store the same shape.
+  const first = String(formData.get("firstName") ?? "").trim();
+  const last = String(formData.get("lastName") ?? "").trim();
+  const name = [first, last].filter(Boolean).join(" ") || String(formData.get("name") ?? "").trim();
 
   const gate = rateLimit(await callerKey("register"), 5, 60_000);
   if (!gate.ok) {
@@ -91,6 +101,7 @@ export async function register(_prev: unknown, formData: FormData) {
       name,
       role: role === "influencer" || role === "creator" ? "creator" : "brand",
       companyName: companyName || null,
+      heardAbout: heardAbout || null,
     },
   });
 

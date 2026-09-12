@@ -38,6 +38,20 @@ model User {
   creatorSlug  String?
   createdAt    DateTime   @default(now())
 
+  // ---- signup provenance --------------------------------------------------
+  // "email" | "google" | "linkedin_oidc". passwordHash is empty for a user who
+  // only ever arrived through OAuth, so the login action must refuse a password
+  // sign-in for them rather than comparing against "".
+  authProvider      String  @default("email")
+  // The provider's stable subject claim. Unique per provider so a second login
+  // links to the same row instead of creating a duplicate account.
+  providerAccountId String?
+  // Free-text attribution answer from the sign-up form. Optional on purpose:
+  // a required question here costs more signups than the answer is worth.
+  heardAbout        String?
+
+  @@unique([authProvider, providerAccountId])
+
   // ---- creator profile, filled in by the onboarding wizard ----------------
   // Null until onboarding completes. A creator with no profile has no
   // marketplace card, so no brand can find or book them.
