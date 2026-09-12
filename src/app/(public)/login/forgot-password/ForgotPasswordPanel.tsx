@@ -33,10 +33,12 @@ export function ForgotPasswordPanel() {
     null
   );
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
 
   const stage = redeemed?.stage ?? requested?.stage ?? "request";
   const error = redeemed?.error ?? requested?.error;
   const notice = requested?.notice;
+  const demoCode = requested?.demoCode;
 
   const input =
     "w-full rounded-[14px] border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-[#111827] transition-all placeholder:text-gray-400 focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/10";
@@ -75,6 +77,33 @@ export function ForgotPasswordPanel() {
           <p className="mb-4 rounded-[14px] border border-[#CBDCF9] bg-[#F2F6FE] px-4 py-3 text-sm leading-5 text-[#1240D0]">
             {notice}
           </p>
+        ) : null}
+
+        {/* No email provider is configured in this build, so the code that
+            would have been emailed is shown here instead. It is still hashed,
+            still single use and still expires — only its value is fixed. */}
+        {demoCode && stage === "verify" ? (
+          <div className="mb-4 rounded-[14px] border border-[#F2E2C0] bg-[#FDFAF2] px-4 py-3.5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#7A5A1E]">
+              Demo PIN — no email is sent in this build
+            </p>
+            <div className="mt-2 flex items-center gap-3">
+              <code className="rounded-[10px] border border-[#EBD9B4] bg-white px-4 py-2 text-[22px] font-bold tracking-[0.32em] text-[#111827]">
+                {demoCode}
+              </code>
+              <button
+                type="button"
+                onClick={() => setCode(demoCode)}
+                className="rounded-[10px] border border-[#EBD9B4] bg-white px-3.5 py-2 text-[13px] font-semibold text-[#7A5A1E] transition-colors hover:bg-[#FBF4E6]"
+              >
+                Use this code
+              </button>
+            </div>
+            <p className="mt-2 text-[13px] leading-5 text-[#7A5A1E]">
+              Connect an email provider and this disappears — a real, random
+              code is generated and mailed instead.
+            </p>
+          </div>
         ) : null}
 
         {stage === "request" ? (
@@ -118,6 +147,8 @@ export function ForgotPasswordPanel() {
                 required
                 maxLength={6}
                 placeholder="000000"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
                 className={`${input} tracking-[0.4em]`}
               />
             </div>

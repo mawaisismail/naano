@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import { rateLimit } from "@/lib/rate-limit";
 import { headers } from "next/headers";
-import { sendEmail } from "@/lib/email";
+import { DEMO_RESET_CODE, demoResetEnabled, emailConfigured, sendEmail } from "@/lib/email";
 
 /**
  * Password recovery: request a 6-digit code, then redeem it for a new password.
@@ -35,7 +35,13 @@ async function callerKey(scope: string) {
   return `${scope}:${ip}`;
 }
 
-export type RecoveryState = { error?: string; notice?: string; stage?: "request" | "verify" } | null;
+export type RecoveryState = {
+  error?: string;
+  notice?: string;
+  stage?: "request" | "verify";
+  /** Set only in demo mode, so the screen can show the PIN it would email. */
+  demoCode?: string;
+} | null;
 
 /** Step one: the user gives an email and we post a code to it. */
 export async function requestRecoveryCode(
@@ -50,12 +56,22 @@ export async function requestRecoveryCode(
   }
   if (!email.includes("@")) return { error: "Enter a valid email address." };
 
+  // With no mailbox and no demo override there is no way to deliver a code, so
+  // say that rather than issuing one nobody can receive.
+  if (!emailConfigured() && !demoResetEnabled()) {
+    return { error: "Password reset is unavailable: no email provider is configured." };
+  }
+
+  const demo = demoResetEnabled();
   const user = await prisma.user.findUnique({ where: { email } });
 
   // Only mint a code for a real account, but return the same message either
   // way. A caller must not be able to tell the two apart.
   if (user) {
-    const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+    // In demo mode the code is fixed and shown on screen. It is still hashed
+    // and still expires, so the rest of the flow is exercised exactly as it
+    // would be in production rather than short-circuited.
+    const code = demo ? DEMO_RESET_CODE : String(randomInt(0, 1_000_000)).padStart(6, "0");
     await prisma.passwordResetCode.updateMany({
       where: { email, usedAt: null },
       data: { usedAt: new Date() },
@@ -72,7 +88,12 @@ export async function requestRecoveryCode(
 
   return {
     stage: "verify",
-    notice: "If that address has an account, a 6-digit code is on its way.",
+    notice: demo
+      ? "This build has no email provider, so no message was sent."
+      : "If that address has an account, a 6-digit code is on its way.",
+    // Returned regardless of whether the account exists, so the demo PIN is
+    // not itself an oracle for which addresses are registered.
+    demoCode: demo ? DEMO_RESET_CODE : undefined,
   };
 }
 

@@ -55,3 +55,22 @@ export async function sendEmail({ to, subject, text }: Email): Promise<SendResul
     return { delivered: false, reason: "unreachable" };
   }
 }
+
+/**
+ * Whether the build may fall back to a fixed demo reset code.
+ *
+ * Two conditions, both required. A fixed code is an account-takeover hole —
+ * anyone who knows it can reset anyone's password — so it is only ever allowed
+ * where there is no mailbox to send a real one AND the build is not a
+ * production deployment. DEMO_PASSWORD_RESET=1 is the deliberate override for
+ * a hosted demo, which has to be typed by a person rather than happening by
+ * accident because someone forgot to set an API key.
+ */
+export function demoResetEnabled(): boolean {
+  if (emailConfigured()) return false;
+  if (process.env.DEMO_PASSWORD_RESET === "1") return true;
+  return process.env.NODE_ENV !== "production";
+}
+
+/** The fixed code used in demo mode. Never used when email is configured. */
+export const DEMO_RESET_CODE = "123456";
