@@ -40,17 +40,22 @@ export function setup() {
   const testUrl = url.toString();
   process.env.TEST_SCHEMA_URL = testUrl;
 
-  // db push creates the schema if it is absent. No --accept-data-loss: the
-  // target schema is brand new, so there is nothing there to lose.
-  execSync(`npx prisma db push --url "${testUrl}" --skip-generate`, { stdio: "pipe" });
+  // Apply the real migration chain rather than pushing the schema shape. The
+  // suite then fails if a migration is broken, which is the thing that
+  // actually breaks a deploy — a schema push would paper straight over it.
+  execSync("npx prisma migrate deploy", {
+    env: { ...process.env, DATABASE_URL: testUrl },
+    stdio: "pipe",
+  });
 
   return () => {
     delete process.env.TEST_SCHEMA_URL;
     try {
-      execSync(
-        `npx prisma db execute --url "${testUrl}" --stdin`,
-        { input: `DROP SCHEMA IF EXISTS "${schema}" CASCADE;`, stdio: "pipe" }
-      );
+      execSync("npx prisma db execute --stdin", {
+        env: { ...process.env, DATABASE_URL: testUrl },
+        input: `DROP SCHEMA IF EXISTS "${schema}" CASCADE;`,
+        stdio: "pipe",
+      });
     } catch {
       // A failed drop leaves one empty schema behind; it must not fail the run.
     }

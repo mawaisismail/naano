@@ -30,15 +30,20 @@ demo-fill affordance, so the credentials live here rather than on the page:
 | Creator | `creator@naano.demo` · `demo1234` |
 
 ```bash
-# Postgres 17, or any Postgres you already have
-docker run -d --name naano-db -p 5432:5432 -e POSTGRES_PASSWORD=naano postgres:17
+# any Postgres will do; 5433 keeps it clear of a 5432 you may already be using
+docker run -d --name naano-pg -p 5433:5432 \
+  -e POSTGRES_PASSWORD=naano -e POSTGRES_DB=naano postgres:16-alpine
 
-cp .env.example .env   # DATABASE_URL already points at the container above
+cp .env.example .env       # DATABASE_URL already points at the container above
 npm install
-npm run db:push        # create the tables
-npm run db:seed        # demo accounts, a live campaign, click history
+npx prisma migrate deploy  # create the tables from prisma/migrations
+npm run db:seed            # demo accounts, a live campaign, click history
 npm run dev
 ```
+
+The schema is versioned in `prisma/migrations`, and both the deploy script and
+the test harness apply it with `migrate deploy` rather than `db push` — a push
+invents a schema change nobody reviewed and will drop a column to get there.
 
 Postgres is the only supported database — locally, in CI and in production.
 There is no second provider and no datasource switching, so the engine the

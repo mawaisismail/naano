@@ -4,8 +4,8 @@
  *
  * Runs only when the resolved URL is Postgres, so local builds are untouched.
  *
- *   1. push the schema (creates the tables; without this every page 500s with
- *      P2021 "table does not exist")
+ *   1. apply the migrations (creates the tables; without this every page 500s
+ *      with P2021 "table does not exist")
  *   2. seed ONLY when the database is empty
  *
  * Step 2 is guarded on purpose. The seed clears the mutable tables before
@@ -49,9 +49,12 @@ const run = (cmd, url) =>
     env: { ...process.env, DATABASE_URL: url },
   });
 
-console.log("[deploy-db] pushing schema…");
+console.log("[deploy-db] applying migrations…");
 try {
-  run("npx prisma db push", migrateUrl);
+  // migrate deploy, not db push: it applies the versioned migrations in
+  // prisma/migrations in order and refuses to invent a schema change nobody
+  // reviewed. db push is for prototyping and will silently drop a column.
+  run("npx prisma migrate deploy", migrateUrl);
 } catch (err) {
   if (onHost) throw err;
   console.log(
