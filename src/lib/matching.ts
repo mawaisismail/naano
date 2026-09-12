@@ -3,16 +3,24 @@ import { CREATORS, type Creator } from "@/lib/creators";
 /**
  * Ranking creators against a brand's ICPs — the "AI Matching" score.
  *
- * There is no model behind it and the UI says so. It is a transparent overlap
- * score: what fraction of the brand's stated ideal customers a creator's
- * audience actually contains, nudged by how well the creator's verticals match
- * the words in the value proposition. That is defensible, reproducible and
- * explainable per creator, which matters more here than a number that looks
- * clever and cannot be checked.
+ * Two implementations, same output shape.
  *
- * The reasons are returned with the score so a card can show WHY a creator is
- * an 87% match instead of asking the brand to trust it.
+ * `rankCreatorsSemantic` is the real one: the brand's ICPs and each creator's
+ * profile are embedded, and the score is cosine similarity in that space. It
+ * matches "revenue leaders who own the CRM" to a RevOps creator without the
+ * two sharing a single word, which is the entire reason to use a model here.
+ *
+ * `rankCreators` is the lexical fallback underneath it — word overlap between
+ * the ICP titles and the creator's own text. It needs no network, so it is
+ * what runs when the model is unconfigured or unreachable, and what the tests
+ * pin. A matching screen that cannot render because a provider is down would
+ * be a worse product than one that ranks slightly less well.
+ *
+ * Both return the reasons alongside the score, so a card can show WHY a
+ * creator is an 87% match instead of asking the brand to trust it.
  */
+
+export type MatchMethod = "embeddings" | "lexical";
 
 export type Match = {
   creator: Creator;
@@ -93,4 +101,93 @@ export function rankCreators(
   return CREATORS.map((c) => scoreCreator(c, brand))
     .sort((a, b) => b.score - a.score || b.creator.followers - a.creator.followers)
     .slice(0, limit);
+}
+
+/* ---------------------------------------------------------- semantic --- */
+
+import { cosine } from "@/lib/ai/cloudflare";
+import { embedCached } from "@/lib/ai/embeddings-cache";
+
+/**
+ * What a creator is embedded as.
+ *
+ * Headline and bio first: they are what the person actually says about
+ * themselves, and they carry the most signal. The audience list is appended
+ * because an ICP is a description of an audience, so the two are being
+ * compared like for like.
+ */
+const creatorText = (c: Creator) =>
+  [c.headline, c.bio, `Audience: ${c.icp.join(", ")}`, `Topics: ${c.verticals.join(", ")}`].join(
+    ". "
+  );
+
+/**
+ * Turning cosine into a percentage a person can read.
+ *
+ * bge-base packs everything English into a narrow band — two unrelated B2B
+ * sentences still score around 0.5 — so showing the raw cosine would rate
+ * every creator "55%" and rank them invisibly. These two constants are the
+ * observed floor and ceiling for this corpus, and the score is the position
+ * between them. It is a display transform on a real measurement, not a curve
+ * invented to make the numbers look good: the ORDER is exactly the cosine
+ * order.
+ */
+const COSINE_FLOOR = 0.45;
+const COSINE_CEILING = 0.82;
+/** Above this, a creator's audience genuinely contains that ICP. */
+const MATCH_THRESHOLD = 0.6;
+
+const toScore = (cos: number) => {
+  const t = (cos - COSINE_FLOOR) / (COSINE_CEILING - COSINE_FLOOR);
+  return Math.round(Math.min(Math.max(t, 0), 1) * 44 + 55);
+};
+
+/**
+ * Rank by meaning. Falls back to the lexical ranking when the model is not
+ * available, so the caller always gets a list.
+ */
+export async function rankCreatorsSemantic(
+  brand: { icps: string[]; valueProp?: string | null },
+  limit = CREATORS.length
+): Promise<{ matches: Match[]; method: MatchMethod }> {
+  const icps = brand.icps.filter((i) => i.trim());
+  if (icps.length === 0) {
+    return { matches: rankCreators(brand, limit), method: "lexical" };
+  }
+
+  // One request for both sides: the creator half is almost always a cache hit,
+  // so what actually goes to the model is the handful of new ICP lines.
+  const creatorTexts = CREATORS.map(creatorText);
+  const vectors = await embedCached([...icps, ...creatorTexts]);
+  if (!vectors) return { matches: rankCreators(brand, limit), method: "lexical" };
+
+  const icpVectors = vectors.slice(0, icps.length);
+  const creatorVectors = vectors.slice(icps.length);
+
+  const matches = CREATORS.map((creator, i) => {
+    const sims = icpVectors.map((v) => cosine(v, creatorVectors[i]));
+    const best = Math.max(...sims);
+
+    // Named reasons are the ICPs this creator's audience actually contains,
+    // strongest first — the same list the count is derived from, so the two
+    // can never disagree.
+    const hits = sims
+      .map((sim, n) => ({ sim, icp: icps[n] }))
+      .filter((x) => x.sim >= MATCH_THRESHOLD)
+      .sort((a, b) => b.sim - a.sim);
+
+    const reasons = hits.map((h) => h.icp.split("—")[0].trim());
+    if (reasons.length === 0) reasons.push(creator.verticals[0] ?? "B2B audience");
+
+    return {
+      creator,
+      score: toScore(best),
+      reasons,
+      matched: hits.length,
+      total: icps.length,
+    };
+  });
+
+  matches.sort((a, b) => b.score - a.score || b.creator.followers - a.creator.followers);
+  return { matches: matches.slice(0, limit), method: "embeddings" };
 }

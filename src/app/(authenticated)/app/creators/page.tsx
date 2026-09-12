@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
-import { rankCreators } from "@/lib/matching";
+import { rankCreatorsSemantic } from "@/lib/matching";
 import { MatchingScreen } from "./MatchingScreen";
 
 export const dynamic = "force-dynamic";
@@ -9,10 +9,11 @@ export const metadata = { title: "Creators — Naano" };
 /**
  * AI Matching, naano's first screen for a brand.
  *
- * The prompt box is real: what is typed narrows the ranked list by the words
- * in it, scored the same way the ICPs are. It is not a chat with a model and
- * the screen says as much — a fake assistant that answers anything and books
- * nobody would be worse than a filter that visibly works.
+ * The prompt box is real: what is typed is embedded and scored exactly like an
+ * ICP, so "creators who post about outbound" finds people whose bios never use
+ * that word. It is a ranking, not a chat — the screen says which of the two
+ * methods produced the list, because a fallback that looks identical to the
+ * real thing is how a silently degraded product ships.
  */
 export default async function CreatorsPage({
   searchParams,
@@ -26,13 +27,17 @@ export default async function CreatorsPage({
   // The typed prompt is treated as a fourth ICP, so the ranking that answers it
   // is the same ranking that produced the default list.
   const icps = q?.trim() ? [...user.icps, q.trim()] : user.icps;
-  const matches = rankCreators({ icps, valueProp: user.valueProp }, 24);
+  const { matches, method } = await rankCreatorsSemantic(
+    { icps, valueProp: user.valueProp },
+    24
+  );
 
   return (
     <MatchingScreen
       company={user.companyName ?? user.name}
       query={q ?? ""}
       view={view === "marketplace" ? "marketplace" : "matching"}
+      method={method}
       icps={user.icps}
       matches={matches.map(({ creator, score, reasons, matched, total }) => ({
         id: creator.id,

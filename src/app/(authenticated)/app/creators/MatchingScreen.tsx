@@ -44,12 +44,15 @@ export function MatchingScreen({
   view,
   icps,
   matches,
+  method,
 }: {
   company: string;
   query: string;
   view: "matching" | "marketplace";
   icps: string[];
   matches: MatchCard[];
+  /** Which ranking actually produced this list. Shown, not hidden. */
+  method: "embeddings" | "lexical";
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -103,7 +106,9 @@ export function MatchingScreen({
         <div className="flex items-center justify-between gap-3 pt-1">
           <span className="inline-flex items-center gap-2 text-[12px] text-[#9CA3AF]">
             <Info size={13} strokeWidth={1.8} aria-hidden />
-            Matches are scored from your ICPs — no model is called.
+            {method === "embeddings"
+              ? "Scored by meaning: your ICPs and each creator's audience, embedded and compared."
+              : "Word-overlap ranking — the matching model is unavailable right now."}
           </span>
           <button
             aria-label="Find creators"
@@ -195,7 +200,7 @@ export function MatchingScreen({
             <p className="mt-3 text-[12px] leading-5 text-[#6B7280]" title={c.reasons.join(" · ")}>
               <span className="font-semibold text-[#4B5563]">Why:</span>{" "}
               {c.total > 0 ? `matches ${c.matched} of ${c.total} ICPs · ` : ""}
-              {c.verticals[0]} audience
+              {c.reasons[0]}
             </p>
 
             <div className="mt-4 flex items-center justify-between gap-3 pt-1">

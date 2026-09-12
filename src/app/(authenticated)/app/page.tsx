@@ -14,7 +14,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { compact, euro } from "@/lib/format";
 import { isCommitted } from "@/lib/lifecycle";
-import { rankCreators } from "@/lib/matching";
+import { rankCreatorsSemantic } from "@/lib/matching";
 import { conversationsFor } from "@/lib/messages";
 import { LiveStatsProvider, LiveCount, LivePulse } from "@/components/app/LiveStats";
 
@@ -54,7 +54,10 @@ export default async function BrandOverview({
   const live = deals.filter((d) => d.status === "live");
   const byDeal = Object.fromEntries(deals.map((d) => [d.id, d._count.clicks]));
 
-  const matches = rankCreators({ icps: user.icps, valueProp: user.valueProp }, 4);
+  const { matches } = await rankCreatorsSemantic(
+    { icps: user.icps, valueProp: user.valueProp },
+    4
+  );
   const reach = matches.reduce((s, m) => s + m.creator.followers, 0);
 
   // Every row is a real blocker with a real destination. "Blocked" means the
