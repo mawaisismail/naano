@@ -5,6 +5,7 @@ import {
   NEXT_ACTION,
   stageIndex,
   isTerminal,
+  isCommitted,
 } from "./lifecycle";
 
 /** Mirrors advanceDeal()'s transition rule. */
@@ -59,5 +60,18 @@ describe("deal lifecycle", () => {
 
   it("returns -1 for an unknown stage rather than matching by accident", () => {
     expect(stageIndex("nonsense")).toBe(-1);
+  });
+});
+
+describe("isCommitted", () => {
+  it("counts every stage a creator has accepted", () => {
+    for (const s of ["accepted", "draft", "scheduled", "live", "paid"]) {
+      expect(isCommitted(s)).toBe(true);
+    }
+  });
+
+  it("does not count an unanswered invitation or a decline", () => {
+    expect(isCommitted("invited")).toBe(false);
+    expect(isCommitted("declined")).toBe(false);
   });
 });
