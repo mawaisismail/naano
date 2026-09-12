@@ -20,8 +20,9 @@ The creators inside the app itself remain invented, with generated avatars.
 
 ## Try it
 
-Two demo accounts, printed on the login page with one-click fill. A two-sided
-marketplace is not reviewable from one side, so both are seeded:
+Two demo accounts. A two-sided marketplace is not reviewable from one side, so
+both are seeded. The sign-in page is a pixel clone of naano's and theirs has no
+demo-fill affordance, so the credentials live here rather than on the page:
 
 | | |
 |---|---|

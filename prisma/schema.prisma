@@ -133,3 +133,20 @@ model Click {
   @@index([trackingCode])
   @@index([dealId, ipHash, createdAt])
 }
+
+/// A one-time 6-digit code for password recovery.
+///
+/// The code itself is never stored — only a SHA-256 of it, the same way a
+/// password is handled, so a dump of this table cannot be replayed against
+/// anyone's account. Rows are consumed on use and expire after 15 minutes.
+model PasswordResetCode {
+  id        String   @id @default(cuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
