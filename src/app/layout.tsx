@@ -20,8 +20,11 @@ const DESCRIPTION =
 export const metadata: Metadata = {
   // Tracked links get pasted into LinkedIn; without these the unfurl is blank,
   // which for a product about link attribution is a bad first impression.
+  // ?? is not enough: a host that has the variable declared but blank passes
+  // an empty string, which is not nullish, and `new URL("")` throws during the
+  // build — a blank env var must mean "not set".
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3000"
   ),
   title: {
     default: "Naano — The B2B LinkedIn Creator Marketplace",

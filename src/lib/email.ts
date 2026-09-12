@@ -10,6 +10,11 @@
  * instead of being sent, and the caller is told it was not delivered. That is
  * deliberate: a local developer needs to see the code to finish the flow, and
  * silently swallowing the send would make a broken production config look fine.
+ *
+ * One deployment note that is easy to lose a day to: a provider will accept the
+ * key and still refuse the send until a sending DOMAIN is verified. Until then
+ * only the account owner's own address receives anything. The 403 that comes
+ * back says so, which is why it is logged in full — see below.
  */
 
 export type Email = { to: string; subject: string; text: string };
@@ -44,9 +49,23 @@ export async function sendEmail({ to, subject, text }: Email): Promise<SendResul
       cache: "no-store",
     });
     if (!res.ok) {
-      // The provider's body can echo the API key back in an error payload, so
-      // only the status code is kept.
-      console.error(`[email] provider rejected the send (${res.status})`);
+      // 401 and 403 are configuration, not a bad address: a restricted key, or
+      // an unverified sending domain. Those are the operator's to fix and the
+      // message says exactly what is wrong, so it is worth logging — every
+      // other status keeps to the code alone, because a provider error body
+      // can echo the API key back.
+      if (res.status === 401 || res.status === 403) {
+        const detail = await res
+          .json()
+          .then((b) => String(b?.message ?? "").slice(0, 300))
+          .catch(() => "");
+        console.error(
+          `[email] provider refused the send (${res.status}) — this is a configuration ` +
+            `problem, not a bad recipient. ${detail}`
+        );
+      } else {
+        console.error(`[email] provider rejected the send (${res.status})`);
+      }
       return { delivered: false, reason: `provider-${res.status}` };
     }
     return { delivered: true };
