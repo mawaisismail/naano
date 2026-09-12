@@ -65,6 +65,20 @@ export async function requestRecoveryCode(
   const demo = demoResetEnabled();
   const user = await prisma.user.findUnique({ where: { email } });
 
+  // In demo mode, say plainly that there is no such account.
+  //
+  // The non-committal "if that address has an account…" exists to stop the
+  // form being used to test which emails are registered. Demo mode already
+  // publishes the PIN on screen, so that protection buys nothing there, and
+  // staying silent produces the worst possible dead end: a visible code that
+  // cannot work, rejected with a message about the code rather than about the
+  // address. Production keeps the original behaviour.
+  if (demo && !user) {
+    return {
+      error: `No account found for ${email}. Sign up first, or use a demo account — brand@naano.demo or creator@naano.demo.`,
+    };
+  }
+
   // Only mint a code for a real account, but return the same message either
   // way. A caller must not be able to tell the two apart.
   if (user) {
