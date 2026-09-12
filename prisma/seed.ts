@@ -48,6 +48,30 @@ async function main() {
       name: me.name,
       role: "creator",
       creatorSlug: me.slug,
+      // The demo creator is a finished account: a reviewer signing in should
+      // land in the workspace, not be dropped into onboarding. Leaving these
+      // unset made the seeded creator indistinguishable from a fresh signup.
+      onboardedAt: new Date(),
+      onboardingStep: 6,
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
+      profileDataSource: "demo",
+      linkedinUrl: `https://www.linkedin.com/in/${me.slug}/`,
+      linkedinImportedAt: new Date(),
+      headline: me.headline,
+      bio: me.bio,
+      country: me.country,
+      countryCode: me.countryCode,
+      flag: me.flag,
+      avatarUrl: me.avatar,
+      followers: me.followers,
+      medianViews: me.medianViews,
+      postCost: me.postCost,
+      reactionsPerPost: me.reactionsPerPost,
+      commentsPerPost: me.commentsPerPost,
+      industries: me.verticals,
+      verticals: me.verticals,
+      icp: me.icp,
     },
   });
 

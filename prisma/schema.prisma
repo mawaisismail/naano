@@ -50,6 +50,37 @@ model User {
   // a required question here costs more signups than the answer is worth.
   heardAbout        String?
 
+  // ---- email verification -------------------------------------------------
+  // The verification email is not sent in this build: there is no mailbox to
+  // send from yet. The STATE is still modelled and written on every signup, so
+  // turning it on later is a matter of sending the mail and flipping the flag,
+  // not a schema change. OAuth signups arrive already verified because the
+  // provider asserted the address.
+  emailVerified     Boolean   @default(false)
+  emailVerifiedAt   DateTime?
+
+  // ---- creator onboarding -------------------------------------------------
+  // Which step of the 4-step wizard this creator has reached, so a refresh or
+  // a "finish later" resumes where they stopped instead of starting over.
+  onboardingStep    Int       @default(1)
+  linkedinUrl       String?
+  linkedinImportedAt DateTime?
+  // "demo" until a real LinkedIn import exists. Every figure derived from an
+  // import is labelled in the UI from this field rather than a hardcoded
+  // string, so the day the API is wired in, the labels disappear on their own.
+  profileDataSource String    @default("demo")
+  industries        String[]
+
+  // ---- professional details, optional at signup ---------------------------
+  // naano lets a creator enter the workspace before filling these in and
+  // blocks payouts until they exist, which is what the nullable columns mean.
+  businessCountry   String?
+  hasBusiness       Boolean?
+  legalName         String?
+  legalAddress      String?
+  taxDeclarationAcceptedAt DateTime?
+  invoiceMandateAcceptedAt DateTime?
+
   @@unique([authProvider, providerAccountId])
 
   // ---- creator profile, filled in by the onboarding wizard ----------------

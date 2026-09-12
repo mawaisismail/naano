@@ -9,10 +9,19 @@
  */
 
 /** Everything under these prefixes is behind a session. */
-export const PROTECTED_PREFIXES = ["/app", "/studio"] as const;
+export const PROTECTED_PREFIXES = ["/app", "/studio", "/creator"] as const;
 
-/** Signed-in users have no business on these; they get sent to their surface. */
-export const AUTH_ENTRY_PATHS = ["/login", "/register"] as const;
+/**
+ * Signed-in users have no business here, so the proxy sends them onward.
+ *
+ * /register is deliberately NOT in this list. naano runs the whole creator
+ * wizard on /register?role=influencer, so a signed-in creator mid-onboarding
+ * has every reason to be there — bouncing them produced a redirect loop
+ * between /register, /creator and back. The register page decides for itself:
+ * it renders the wizard while onboarding is unfinished and redirects to the
+ * right workspace once it is done.
+ */
+export const AUTH_ENTRY_PATHS = ["/login"] as const;
 
 export function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(

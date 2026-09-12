@@ -49,5 +49,5 @@ export function proxy(request: NextRequest) {
 export const config = {
   // Without a matcher the proxy runs on every request, static assets included.
   // These are the only paths whose response it can change.
-  matcher: ["/app/:path*", "/studio/:path*", "/login", "/register"],
+  matcher: ["/app/:path*", "/studio/:path*", "/creator/:path*", "/login", "/register"],
 };

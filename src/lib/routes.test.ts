@@ -15,15 +15,19 @@ describe("which paths sit behind a session", () => {
   it("protects the section roots", () => {
     expect(isProtectedPath("/app")).toBe(true);
     expect(isProtectedPath("/studio")).toBe(true);
+    expect(isProtectedPath("/creator")).toBe(true);
   });
 
   it("protects everything nested under them", () => {
     expect(isProtectedPath("/app/campaigns/new")).toBe(true);
     expect(isProtectedPath("/studio/onboarding")).toBe(true);
+    expect(isProtectedPath("/creator/analytics")).toBe(true);
   });
 
   it("leaves the public site alone", () => {
-    for (const p of ["/", "/creators", "/blog/x", "/free-tools", "/marketplace"]) {
+    // "/creators" is the public marketing page; "/creator" is the workspace.
+    // One character apart, opposite sides of the auth boundary.
+    for (const p of ["/", "/creators", "/creators/x", "/blog/x", "/free-tools", "/marketplace"]) {
       expect(isProtectedPath(p)).toBe(false);
     }
   });
@@ -39,19 +43,23 @@ describe("which paths sit behind a session", () => {
   it("keeps the proxy matcher and this list in step", () => {
     // If a prefix is added here it must also be added to the matcher in
     // proxy.ts, or the gate silently stops covering it.
-    expect([...PROTECTED_PREFIXES]).toEqual(["/app", "/studio"]);
+    expect([...PROTECTED_PREFIXES]).toEqual(["/app", "/studio", "/creator"]);
   });
 });
 
 describe("the sign-in entry points", () => {
-  it("recognises them", () => {
+  it("recognises the sign-in page", () => {
     expect(isAuthEntryPath("/login")).toBe(true);
-    expect(isAuthEntryPath("/register")).toBe(true);
+  });
+
+  it("leaves /register alone, because the creator wizard lives there", () => {
+    // Bouncing a signed-in creator off /register loops: /register -> /creator
+    // -> (not onboarded) -> /register.
+    expect(isAuthEntryPath("/register")).toBe(false);
   });
 
   it("is not fooled by a lookalike", () => {
     expect(isAuthEntryPath("/logout-help")).toBe(false);
-    expect(isAuthEntryPath("/registered-creators")).toBe(false);
   });
 });
 

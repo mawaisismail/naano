@@ -19,9 +19,28 @@
  *   data row max-w 360, 1.5px track #E8EBF1, gradient #2563EB → #7C8DF6
  *   stats    3 cells on #FCFCFD above a #E7E8EB rule, 20 → 24 figures
  */
-export function MarketplaceCard({ name }: { name: string }) {
+export function MarketplaceCard({
+  name,
+  headline = null,
+  avatarUrl = null,
+  followers = null,
+  postCost = null,
+  industries = [],
+  flag = null,
+}: {
+  name: string;
+  /** Everything below is null until step 2 imports it. */
+  headline?: string | null;
+  avatarUrl?: string | null;
+  followers?: number | null;
+  postCost?: number | null;
+  industries?: string[];
+  flag?: string | null;
+}) {
   const trimmed = name.trim();
   const initial = (trimmed[0] ?? "Y").toUpperCase();
+  const compact = (n: number) =>
+    n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1).replace(/\.0$/, "")}K` : String(n);
 
   return (
     <div className="relative w-full max-w-[500px]" aria-live="polite">
@@ -61,11 +80,22 @@ export function MarketplaceCard({ name }: { name: string }) {
               </span>
             </span>
 
+            {flag ? (
+              <span className="absolute right-5 top-4 z-20 inline-flex size-11 items-center justify-center rounded-[15px] border border-white/75 bg-white/[0.88] text-[20px] shadow-[0_6px_18px_rgba(15,23,42,0.10)] backdrop-blur-md sm:right-7 sm:top-5">
+                {flag}
+              </span>
+            ) : null}
+
             <div className="absolute bottom-0 left-1/2 z-30 -translate-x-1/2 translate-y-1/2">
               <div className="relative rounded-full shadow-[0_10px_24px_rgba(37,99,235,0.20)] ring-[3px] ring-[#2563EB]">
-                <div className="flex size-[78px] shrink-0 items-center justify-center rounded-full bg-[#F7F6F3] text-[28px] font-semibold text-[#787774]">
-                  {initial}
-                </div>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="" className="size-[78px] shrink-0 rounded-full bg-[#F7F6F3] object-cover" />
+                ) : (
+                  <div className="flex size-[78px] shrink-0 items-center justify-center rounded-full bg-[#F7F6F3] text-[28px] font-semibold text-[#787774]">
+                    {initial}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -80,11 +110,15 @@ export function MarketplaceCard({ name }: { name: string }) {
               </div>
             </div>
 
+            {industries.length ? (
+              <p className="mt-1 text-[15px] text-[#5F6673]">{industries.join(" · ")}</p>
+            ) : null}
+
             <p
               className="mx-auto mt-5 min-h-[48px] max-w-[390px] text-[14px] leading-6 text-[#5F6673] sm:text-[15px]"
               style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
             >
-              Your LinkedIn headline and topics will appear here.
+              {headline || "Your LinkedIn headline and topics will appear here."}
             </p>
 
             <div className="mx-auto mt-4 flex max-w-[360px] items-center gap-3 pb-5 text-left">
@@ -108,9 +142,12 @@ export function MarketplaceCard({ name }: { name: string }) {
 
           {/* ------------------------------------------------------- stats */}
           <dl className="grid grid-cols-3 border-t border-[#E7E8EB] bg-[#FCFCFD]">
-            <Stat label="Followers" />
+            <Stat label="Followers" value={followers ? compact(followers) : null} />
             <Stat label="Est. impressions" divided />
-            <Stat label="Cost / post" />
+            <Stat
+              label={postCost ? "Potential cost" : "Cost / post"}
+              value={postCost ? `€${postCost}` : null}
+            />
           </dl>
 
           {/* naano lays a faint noise field over the whole card; it is what
@@ -130,7 +167,7 @@ export function MarketplaceCard({ name }: { name: string }) {
   );
 }
 
-function Stat({ label, divided }: { label: string; divided?: boolean }) {
+function Stat({ label, divided, value }: { label: string; divided?: boolean; value?: string | null }) {
   return (
     <div
       className={`flex min-w-0 flex-col items-center justify-center px-2 py-5 text-center sm:px-4 sm:py-6 ${
@@ -139,7 +176,7 @@ function Stat({ label, divided }: { label: string; divided?: boolean }) {
     >
       <dt className="order-2 mt-1 text-[11px] leading-4 text-[#8A909B] sm:text-xs">{label}</dt>
       <dd className="order-1 w-full truncate text-[20px] font-bold tracking-[-0.025em] text-[#111827] sm:text-[24px]">
-        —
+        {value ?? "—"}
       </dd>
     </div>
   );

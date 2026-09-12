@@ -58,7 +58,10 @@ export async function login(_prev: unknown, formData: FormData) {
   await startSession(user.id);
 
   const next = safeNextPath(String(formData.get("next") ?? ""));
-  redirect(next ?? (user.role === "creator" ? "/studio" : "/app"));
+  // Straight to the workspace. /studio still resolves for old links, but it
+  // only redirects here, and bouncing a fresh sign-in through it is a wasted
+  // round trip.
+  redirect(next ?? (user.role === "creator" ? "/creator" : "/app"));
 }
 
 export async function register(_prev: unknown, formData: FormData) {
@@ -102,13 +105,20 @@ export async function register(_prev: unknown, formData: FormData) {
       role: role === "influencer" || role === "creator" ? "creator" : "brand",
       companyName: companyName || null,
       heardAbout: heardAbout || null,
+      // No verification mail is sent in this build, but the state is recorded
+      // on every signup so switching it on later is a send plus a flip rather
+      // than a migration. An email signup starts unverified by definition.
+      emailVerified: false,
+      // Step 1 of the wizard is this form; the creator resumes at step 2.
+      onboardingStep: role === "influencer" || role === "creator" ? 2 : 1,
     },
   });
 
   await startSession(user.id);
-  // A creator with no profile has no marketplace card, so no brand can find or
-  // book them. Onboarding is the first thing they see, not an empty studio.
-  redirect(user.role === "creator" ? "/studio/onboarding" : "/app");
+  // naano keeps the whole creator wizard on /register?role=influencer and
+  // advances it in place, so a new creator goes back to the same URL and lands
+  // on step 2 rather than being moved to a different route.
+  redirect(user.role === "creator" ? "/register?role=influencer" : "/app");
 }
 
 export async function logout() {

@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { LocaleButton } from "./parts";
 import { CreatorSignup } from "./CreatorSignup";
 import { BrandSignup } from "./BrandSignup";
+import { CreatorWizard } from "./CreatorWizard";
+import { getCurrentUser } from "@/lib/session";
 
 /**
  * /register — naano's sign-up entry.
@@ -23,6 +26,32 @@ export default async function RegisterPage({
   searchParams: Promise<{ role?: string; error?: string; provider?: string }>;
 }) {
   const { role, error, provider } = await searchParams;
+
+  // naano runs the whole creator wizard on this URL, so a signed-in creator
+  // who has not finished it resumes here rather than seeing the sign-up form
+  // again.
+  //
+  // The gate is onboardedAt, not the step counter: that column is what puts a
+  // card in the marketplace, and a creator who has one is finished as far as
+  // this route is concerned. The professional-information step is optional and
+  // is reached from the workspace, so it must not be able to trap someone who
+  // already has a live card in a wizard they cannot leave.
+  const user = await getCurrentUser();
+  const midWizard =
+    user?.role === "creator" &&
+    // steps 2-4: no card yet
+    (!user.onboardedAt ||
+      // step 5: the card is live and the optional professional step has not
+      // been passed or dismissed yet. finishLater moves this to 6.
+      user.onboardingStep === 5);
+  if (user?.role === "creator" && midWizard) {
+    return <CreatorWizard user={user} />;
+  }
+  // Reopen the optional professional step on purpose, from the workspace.
+  if (user?.role === "creator" && !user.invoiceMandateAcceptedAt && role === "professional") {
+    return <CreatorWizard user={{ ...user, onboardingStep: 5 }} />;
+  }
+  if (user) redirect(user.role === "creator" ? "/creator" : "/app");
 
   if (role === "influencer" || role === "creator") {
     return <CreatorSignup error={error} provider={provider} />;

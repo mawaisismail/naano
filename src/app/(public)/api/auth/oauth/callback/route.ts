@@ -83,6 +83,8 @@ export async function GET(request: NextRequest) {
           authProvider: provider,
           providerAccountId: profile.providerAccountId,
           avatarUrl: byEmail.avatarUrl ?? profile.avatarUrl,
+          emailVerified: true,
+          emailVerifiedAt: byEmail.emailVerifiedAt ?? new Date(),
         },
       })
     : await prisma.user.create({
@@ -97,11 +99,20 @@ export async function GET(request: NextRequest) {
           authProvider: provider,
           providerAccountId: profile.providerAccountId,
           avatarUrl: profile.avatarUrl,
+          // The provider asserted this address and we refused the sign-in
+          // above if it had not verified it, so there is nothing left to check.
+          emailVerified: true,
+          emailVerifiedAt: new Date(),
+          onboardingStep: role === "saas" ? 1 : 2,
         },
       });
 
   const destination =
-    user.role === "creator" && !user.onboardedAt ? "/studio/onboarding" : user.role === "creator" ? "/studio" : "/app";
+    user.role === "creator" && !user.onboardedAt
+      ? "/register?role=influencer"
+      : user.role === "creator"
+        ? "/creator"
+        : "/app";
 
   const res = NextResponse.redirect(new URL(destination, request.url));
   for (const name of Object.values(OAUTH_COOKIES)) res.cookies.delete(name);
