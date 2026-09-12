@@ -108,15 +108,16 @@ Valkey and in process, so AI Matching is a cache read after the first request.
 ## 7. What the build does
 
 `npm run build` runs `prisma generate`, then `scripts/deploy-db.mjs`, then
-`next build`. The middle step applies migrations, and seeds **only when the
-database has no users** — so a deploy never overwrites data a reviewer has
-entered.
+`next build`. The middle step applies migrations and writes nothing else:
+there is no seed, so a deploy can never overwrite data a reviewer has entered.
 
 ## 8. After the first deploy
 
 - [ ] `https://naano.awaisismail.me` loads
-- [ ] Sign in as `brand@naano.demo` / `demo1234` → the brand workspace
-- [ ] Sign in as `creator@naano.demo` / `demo1234` → the creator workspace
+- [ ] Sign up as a brand; the site read reaches "Read from <domain>"
+- [ ] Sign up as a creator in another browser and finish the card
+- [ ] The brand's **Creators** screen now lists that creator; invite them
+- [ ] The creator accepts, publishes, and the brand pays out
 - [ ] Password reset sends a real email (requires §4)
 - [ ] Rate limiting holds across instances: eleven failed logins in a minute
       should be refused, not ten per server

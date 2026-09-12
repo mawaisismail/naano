@@ -20,24 +20,32 @@ The creators inside the app itself remain invented, with generated avatars.
 
 ## Try it
 
-Two demo accounts. A two-sided marketplace is not reviewable from one side, so
-both are seeded. The sign-in page is a pixel clone of naano's and theirs has no
-demo-fill affordance, so the credentials live here rather than on the page:
+There are no demo accounts, because there is no seed. The marketplace is
+whoever has signed up, so a fresh database is legitimately empty and every
+screen that can be empty says what it is waiting for.
 
-| | |
-|---|---|
-| Brand | `brand@naano.demo` · `demo1234` |
-| Creator | `creator@naano.demo` · `demo1234` |
+To see the product, walk the loop it exists for — it takes about three minutes
+and is the same path `npm run test:e2e` automates:
+
+1. `/register?role=saas` — sign up as a brand, give it a real company URL. The
+   site is read and turned into a value proposition and three ICPs.
+2. `/register?role=influencer` in another browser — sign up as a creator and
+   finish the card.
+3. Back on the brand: **Creators** now lists that person, ranked against your
+   ICPs. **Invite** them onto the campaign the wizard created.
+4. On the creator: **Collaborations** shows the invitation. Accept it, mark the
+   draft ready, schedule it, then paste the post URL to publish.
+5. Back on the brand: the booking is live with its own tracking link, and
+   **Results** attributes every click on it to that creator. Pay out.
 
 ```bash
 # any Postgres will do; 5433 keeps it clear of a 5432 you may already be using
 docker run -d --name naano-pg -p 5433:5432 \
   -e POSTGRES_PASSWORD=naano -e POSTGRES_DB=naano postgres:16-alpine
 
-cp .env.example .env       # DATABASE_URL already points at the container above
+cp .env.example .env       # then fill in DATABASE_URL and SESSION_SECRET
 npm install
 npx prisma migrate deploy  # create the tables from prisma/migrations
-npm run db:seed            # demo accounts, a live campaign, click history
 npm run dev
 ```
 
@@ -69,14 +77,15 @@ between "we ran a campaign" and "this specific creator drove 47 clicks."
 
 | Step | |
 |---|---|
-| 01 Match | Landing page, marketplace, 32 seeded creators, filters on vertical / audience tier / price / country, match scoring |
-| 02 Brief | Bulk-select creators → drafted campaign brief → invites sent |
-| 03 Manage | Deal lifecycle: invited → accepted → draft → scheduled → live → paid |
+| 01 Match | Landing page, marketplace of signed-up creators, filters on vertical / audience tier / price / country, AI matching against the brand's ICPs |
+| 02 Brief | Brand onboarding reads the company site and drafts the brief; creators are invited onto it, or apply to it |
+| 03 Manage | Booking lifecycle: invited → accepted → draft → scheduled → live → paid, each step taken by the side that does the work |
 | 04 Track | `/r/[code]` tracked links, per-creator click attribution, live counters |
-| 05 Pay | Deal prices, campaign spend, cost per click, creator earnings |
+| 05 Pay | Booking prices, campaign spend, cost per click, creator earnings |
 
-Both sides work. Brands book and track at `/app`; creators accept offers, mark
-posts published and see earnings at `/studio`.
+Both sides work, and they work on each other: brands book and track at `/app`,
+creators accept, publish and get paid at `/creator`. `npm run test:e2e` walks
+the whole loop with two accounts it creates as it goes.
 
 ---
 
@@ -104,11 +113,19 @@ Cuts are shown in the app rather than hidden — `/app/messages` and
 
 ## Decisions worth explaining
 
-**Creators are not database rows.** They are static seed data. They do not
-change at runtime, so the entire browse experience — landing page, marketplace,
-filters, profiles — works with no database attached. Only the mutable half
-(accounts, campaigns, deals, clicks) is persisted. A `Deal` references a creator
-by seed id.
+**Every creator is a database row.** They used to be a static file of invented
+people, which made the marketplace a brochure: nothing a real signup did could
+appear in it, and a `Deal` referenced a seed id no foreign key could check.
+A booking now has a real relation to the user being booked, with a unique index
+on (campaign, creator) so one creator cannot end up with two posts to pay for
+on the same campaign.
+
+**A booking is moved by whichever side does that step.** The creator accepts an
+invitation, writes the draft, schedules it and publishes it; the brand pays
+out. `initiatedBy` records who opened the conversation, because the side that
+did NOT start it is the side that answers — otherwise either party could book
+the other unilaterally. The rule is `ownerOf()` in `src/lib/lifecycle.ts` and
+it is enforced in both sides' actions.
 
 **Every deal owns a tracking code, not every campaign.** That single choice is
 what makes attribution per-creator. It is enforced `@unique` at the database

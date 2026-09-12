@@ -113,13 +113,16 @@ section says so.
 Code's own JSONL transcript. Two sessions built this project and **both** are
 published:
 
-| File | Session | Exchanges |
-| --- | --- | --- |
-| `2026-09-09_18-28-29_4200849e….md` | the kickoff: the brief, and this harness | 4 |
-| `2026-09-09_19-08-47_6616eb0a….md` | the build | 90 |
+| File | Session |
+| --- | --- |
+| `2026-09-09_18-28-29_4200849e….md` | the kickoff: the brief, and this harness |
+| `2026-09-09_19-08-47_6616eb0a….md` | the build |
 
-94 exchanges in total. The kickoff session ran in a different directory, which
-is why it is a separate file and why neither was captured live (see section 5).
+The counts are not written down here on purpose: the build log grows every time
+the session continues, and a number in a document is wrong the moment it does.
+`npm run logs` prints the current ones and checks them. The kickoff session ran
+in a different directory, which is why it is a separate file and why neither
+was captured live (see section 5).
 
 Both are rebuilt and checked by one command, `npm run logs`. The sessions are
 listed by id in `scripts/agent-logs.mjs`: a session named there whose
@@ -158,16 +161,16 @@ is **altered**, and an **extra** entry with no typed prompt behind it:
 
 ```
 $ npm run logs
-transcript: 91 typed prompt(s)
-log:        90 prompt entr(ies), 90 response entr(ies)
+transcript: N typed prompt(s)
+log:        N-1 prompt entr(ies), N-1 response entr(ies)
 
 OK: every typed prompt is published, and nothing else is.
 ```
 
-The 91st is the exchange that was in flight while the log was written; its
-response did not exist yet, and the next run picks it up. That gap is always
-exactly one turn, and it closes by running `npm run logs` once more after the
-final turn of a session. Run against the
+The one missing is the exchange that was in flight while the log was written;
+its response did not exist yet, and the next run picks it up. That gap is
+always exactly one turn, and it closes by running `npm run logs` once more
+after the final turn of a session. Run against the
 earlier version of this log, the same check reported 22 missing prompts and 3
 injected notices published as user text — which is why it exists.
 
