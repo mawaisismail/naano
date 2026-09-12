@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
-import { logout } from "@/lib/actions/auth";
 import { CreatorSidebar } from "./CreatorSidebar";
+import { AccountMenu } from "./AccountMenu";
 
 /**
  * The creator workspace shell, authored from naano's /creator screen.
@@ -50,19 +50,13 @@ export default async function CreatorLayout({ children }: { children: React.Reac
             </svg>
           </button>
 
-          <form action={logout}>
-            <button type="submit" title="Sign out" className="relative block rounded-full">
-              {user.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.avatarUrl} alt="Sign out" className="size-9 rounded-full object-cover" />
-              ) : (
-                <span className="grid size-9 place-items-center rounded-full bg-[#E8F0FE] text-sm font-semibold text-[#2563eb]">
-                  {user.name.slice(0, 1).toUpperCase()}
-                </span>
-              )}
-              <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white bg-[#22C55E]" />
-            </button>
-          </form>
+          <AccountMenu
+            name={user.name}
+            email={user.email}
+            avatarUrl={user.avatarUrl}
+            creatorSlug={user.creatorSlug}
+            needsProfessionalInfo={!user.invoiceMandateAcceptedAt}
+          />
         </header>
 
         <main className="px-8 pb-16">{children}</main>
