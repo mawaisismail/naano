@@ -27,6 +27,28 @@ const when = (d: Date) => {
 
 export const messageTime = when;
 
+/**
+ * Conversations that have been spoken in come first, newest reply at the top;
+ * silent bookings follow, newest booking first.
+ *
+ * Comparing a last-message time against a booking date in one sort does not do
+ * this: a booking created today outranks a reply from yesterday, so the screen
+ * opens on an empty room while the live conversation sits below it. Whether a
+ * thread has been spoken in is the primary key, and time only breaks ties
+ * inside each group.
+ *
+ * Exported and pure so the rule can be tested without a database.
+ */
+export function orderConversations<
+  T extends { createdAt: Date; messages: { createdAt: Date }[] },
+>(deals: T[]): T[] {
+  const at = (d: T) => (d.messages[0]?.createdAt ?? d.createdAt).getTime();
+  return [...deals].sort((a, b) => {
+    const spoken = Number(b.messages.length > 0) - Number(a.messages.length > 0);
+    return spoken !== 0 ? spoken : at(b) - at(a);
+  });
+}
+
 export async function conversationsFor(user: {
   id: string;
   role: string;
@@ -45,16 +67,7 @@ export async function conversationsFor(user: {
     orderBy: { createdAt: "desc" },
   });
 
-  // Order by the last message, not by when the booking was created: a
-  // messages screen that opens on the newest deal shows an empty room while an
-  // active conversation sits further down the list. Bookings with no messages
-  // yet fall back to their own date, so they still appear.
-  return deals
-    .sort(
-      (a, b) =>
-        (b.messages[0]?.createdAt ?? b.createdAt).getTime() -
-        (a.messages[0]?.createdAt ?? a.createdAt).getTime()
-    )
+  return orderConversations(deals)
     .map((d) => ({
     dealId: d.id,
     counterpart:
