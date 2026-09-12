@@ -116,10 +116,17 @@ published:
 | File | Session | Exchanges |
 | --- | --- | --- |
 | `2026-09-09_18-28-29_4200849e….md` | the kickoff: the brief, and this harness | 4 |
-| `2026-09-09_19-08-47_6616eb0a….md` | the build | 89 |
+| `2026-09-09_19-08-47_6616eb0a….md` | the build | 90 |
 
-93 exchanges in total. The kickoff session ran in a different directory, which
+94 exchanges in total. The kickoff session ran in a different directory, which
 is why it is a separate file and why neither was captured live (see section 5).
+
+Both are rebuilt and checked by one command, `npm run logs`. The sessions are
+listed by id in `scripts/agent-logs.mjs`: a session named there whose
+transcript cannot be found is a hard failure rather than a silent skip, which
+is the only way "no session was missed" can be enforced instead of asserted.
+Discovery by working directory alone would never have found the kickoff
+session, since it ran under another project's path.
 
 What that is: the prompts and final responses in the committed log are read
 **verbatim from disk**. Claude Code records every session; the material is
@@ -150,15 +157,17 @@ distinct faults — a prompt **missing** from the log, a logged prompt whose tex
 is **altered**, and an **extra** entry with no typed prompt behind it:
 
 ```
-$ node scripts/verify-agent-log.mjs <transcript> <log>
-transcript: 90 typed prompt(s)
-log:        89 prompt entr(ies), 89 response entr(ies)
+$ npm run logs
+transcript: 91 typed prompt(s)
+log:        90 prompt entr(ies), 90 response entr(ies)
 
 OK: every typed prompt is published, and nothing else is.
 ```
 
-The 90th is the exchange that was in flight while the log was written; its
-response did not exist yet, and the next run picks it up. Run against the
+The 91st is the exchange that was in flight while the log was written; its
+response did not exist yet, and the next run picks it up. That gap is always
+exactly one turn, and it closes by running `npm run logs` once more after the
+final turn of a session. Run against the
 earlier version of this log, the same check reported 22 missing prompts and 3
 injected notices published as user text — which is why it exists.
 

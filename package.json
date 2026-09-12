@@ -13,7 +13,8 @@
     "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "logs": "node scripts/agent-logs.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
