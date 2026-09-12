@@ -13,6 +13,7 @@ import {
   SignInLine,
   useSignupFields,
 } from "./parts";
+import type { ProviderAvailability } from "@/components/auth/ProviderButtons";
 
 /**
  * /register?role=influencer — the creator side.
@@ -28,7 +29,15 @@ import {
 
 const HEARD = ["LinkedIn", "Another creator", "Word of mouth", "Google search", "Other"] as const;
 
-export function CreatorSignup({ error, provider }: { error?: string; provider?: string }) {
+export function CreatorSignup({
+  error,
+  provider,
+  available,
+}: {
+  error?: string;
+  provider?: string;
+  available: ProviderAvailability;
+}) {
   const [mode, setMode] = useState<"options" | "email">("options");
   const f = useSignupFields();
   const [state, action, pending] = useActionState(register, null);
@@ -55,7 +64,7 @@ export function CreatorSignup({ error, provider }: { error?: string; provider?: 
                 Get paid to create LinkedIn content for B2B brands you actually use.
               </p>
               <ErrorNote error={error} provider={provider} />
-              <ProviderButtons role="influencer" onEmail={() => setMode("email")} />
+              <ProviderButtons role="influencer" onEmail={() => setMode("email")} available={available} />
               <SignInLine size="creator" />
             </div>
           ) : (

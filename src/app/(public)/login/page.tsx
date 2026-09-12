@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { homeForRole } from "@/lib/routes";
 import { LoginPanel } from "./LoginPanel";
+import { isConfigured } from "@/lib/oauth";
 
 /**
  * /login — naano links here as /login?reauth=1 from every "Sign in" in the
@@ -23,5 +24,12 @@ export default async function LoginPage({
   const user = await getCurrentUser();
   if (user) redirect(homeForRole(user.role));
 
-  return <LoginPanel next={next} error={error} provider={provider} />;
+  return (
+    <LoginPanel
+      next={next}
+      error={error}
+      provider={provider}
+      available={{ google: isConfigured("google"), linkedin: isConfigured("linkedin_oidc") }}
+    />
+  );
 }

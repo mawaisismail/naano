@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ProviderButtons as SharedProviderButtons,
+  type ProviderAvailability,
+} from "@/components/auth/ProviderButtons";
+
 import { useState } from "react";
 
 /**
@@ -160,30 +165,15 @@ const PROVIDER_SHADOW = { boxShadow: "0 2px 6px rgba(15,23,42,0.05)" };
 export function ProviderButtons({
   role,
   onEmail,
+  available,
 }: {
   role: "influencer" | "saas";
   onEmail: () => void;
+  available: ProviderAvailability;
 }) {
   return (
     <>
-      <div className="space-y-3">
-        <a
-          href={`/api/auth/oauth/start?provider=linkedin_oidc&role=${role}`}
-          className={PROVIDER_BUTTON}
-          style={PROVIDER_SHADOW}
-        >
-          <LinkedInGlyph />
-          <span>Sign up with LinkedIn</span>
-        </a>
-        <a
-          href={`/api/auth/oauth/start?provider=google&role=${role}`}
-          className={PROVIDER_BUTTON}
-          style={PROVIDER_SHADOW}
-        >
-          <GoogleGlyph />
-          <span>Sign up with Google</span>
-        </a>
-      </div>
+      <SharedProviderButtons verb="Sign up" role={role} available={available} />
       <button type="button" onClick={onEmail} className={PROVIDER_BUTTON} style={PROVIDER_SHADOW}>
         <svg viewBox="0 0 24 24" className="size-[18px] text-[#4B5563]" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
           <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -229,7 +219,7 @@ export function ErrorNote({ error, provider }: { error?: string; provider?: stri
   const label = provider === "linkedin_oidc" ? "LinkedIn" : provider === "google" ? "Google" : "That provider";
   const message =
     error === "unconfigured"
-      ? `${label} sign-in is not configured in this environment yet. Use email for now.`
+      ? `${label} sign-in isn't available right now. Use your email address below.`
       : error === "denied"
         ? "The sign-in was cancelled."
         : error === "unverified"
@@ -262,23 +252,4 @@ export function useSignupFields() {
 
 /* --------------------------------------------------------------- icons --- */
 
-function LinkedInGlyph() {
-  return (
-    <span className="grid size-[18px] place-items-center rounded-[3px] bg-[#0A66C2]" aria-hidden>
-      <svg viewBox="0 0 24 24" className="size-3 text-white" fill="currentColor">
-        <path d="M4.98 3.5A2.5 2.5 0 1 1 0 3.5a2.5 2.5 0 0 1 4.98 0ZM.24 8.25h4.5V24h-4.5V8.25Zm7.5 0h4.31v2.15h.06c.6-1.14 2.07-2.34 4.26-2.34 4.56 0 5.4 3 5.4 6.9V24h-4.5v-7.9c0-1.88-.03-4.3-2.62-4.3-2.62 0-3.02 2.05-3.02 4.16V24h-4.5V8.25Z" />
-      </svg>
-    </span>
-  );
-}
 
-function GoogleGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden>
-      <path fill="#4285F4" d="M23.5 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.87c2.26-2.09 3.56-5.17 3.56-8.87Z" />
-      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.94-2.91l-3.87-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.28v3.09A12 12 0 0 0 12 24Z" />
-      <path fill="#FBBC05" d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.62H1.28a12 12 0 0 0 0 10.76l3.99-3.09Z" />
-      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.62l3.99 3.09C6.22 6.86 8.87 4.75 12 4.75Z" />
-    </svg>
-  );
-}

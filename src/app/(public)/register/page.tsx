@@ -6,6 +6,7 @@ import { BrandSignup } from "./BrandSignup";
 import { CreatorWizard } from "./CreatorWizard";
 import { BrandWizard } from "./BrandWizard";
 import { getCurrentUser } from "@/lib/session";
+import { isConfigured } from "@/lib/oauth";
 
 /**
  * /register — naano's sign-up entry.
@@ -27,6 +28,14 @@ export default async function RegisterPage({
   searchParams: Promise<{ role?: string; error?: string; provider?: string; step?: string }>;
 }) {
   const { role, error, provider, step } = await searchParams;
+
+  // Whether the OAuth buttons work is a fact about the environment, not a flag
+  // someone has to remember to flip: real credentials turn them on, placeholder
+  // ones leave them visibly unavailable.
+  const available = {
+    google: isConfigured("google"),
+    linkedin: isConfigured("linkedin_oidc"),
+  };
 
   // naano runs the whole creator wizard on this URL, so a signed-in creator
   // who has not finished it resumes here rather than seeing the sign-up form
@@ -73,10 +82,10 @@ export default async function RegisterPage({
   if (user) redirect(user.role === "creator" ? "/creator" : "/app");
 
   if (role === "influencer" || role === "creator") {
-    return <CreatorSignup error={error} provider={provider} />;
+    return <CreatorSignup error={error} provider={provider} available={available} />;
   }
   if (role === "saas" || role === "brand") {
-    return <BrandSignup error={error} provider={provider} />;
+    return <BrandSignup error={error} provider={provider} available={available} />;
   }
 
   return (

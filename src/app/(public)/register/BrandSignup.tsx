@@ -12,6 +12,7 @@ import {
   SignInLine,
   useSignupFields,
 } from "./parts";
+import type { ProviderAvailability } from "@/components/auth/ProviderButtons";
 
 /**
  * /register?role=saas — the brand side.
@@ -28,7 +29,15 @@ import {
 
 const HEARD = ["LinkedIn", "Word of mouth", "Google search", "A creator", "Other"] as const;
 
-export function BrandSignup({ error, provider }: { error?: string; provider?: string }) {
+export function BrandSignup({
+  error,
+  provider,
+  available,
+}: {
+  error?: string;
+  provider?: string;
+  available: ProviderAvailability;
+}) {
   const [mode, setMode] = useState<"options" | "email">("options");
   const f = useSignupFields();
   const [state, action, pending] = useActionState(register, null);
@@ -53,7 +62,7 @@ export function BrandSignup({ error, provider }: { error?: string; provider?: st
             <div className="space-y-4">
               {intro}
               <ErrorNote error={error} provider={provider} />
-              <ProviderButtons role="saas" onEmail={() => setMode("email")} />
+              <ProviderButtons role="saas" onEmail={() => setMode("email")} available={available} />
               <SignInLine size="brand" />
             </div>
           ) : (

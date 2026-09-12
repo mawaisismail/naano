@@ -97,8 +97,6 @@ const SHAPES = [
   [/eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/g, "jwt"],
 ];
 
-const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 /** Redact `text`, leaving a visible marker for every removal. */
 export function redact(text, secrets = secretsFromEnv()) {
   let out = text;

@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ProviderButtons,
+  type ProviderAvailability,
+} from "@/components/auth/ProviderButtons";
+
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { login } from "@/lib/actions/auth";
@@ -27,17 +32,17 @@ import { ErrorNote, LocaleButton } from "@/app/(public)/register/parts";
 const INPUT =
   "w-full rounded-[14px] border border-[#D1D5DB] bg-white px-4 py-3.5 text-sm text-[#111827] transition-all placeholder:text-[#9CA3AF] focus:border-[#2563eb] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15";
 const LABEL = "mb-1.5 ml-1 block text-xs font-semibold uppercase tracking-wide text-[#5C5B57]";
-const PROVIDER =
-  "flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-[14px] border border-[#E5E7EB] bg-white text-[15px] font-semibold text-[#111827] transition-all hover:border-[#D1D5DB] hover:bg-[#F9FAFB]";
 
 export function LoginPanel({
   next,
   error,
   provider,
+  available,
 }: {
   next?: string;
   error?: string;
   provider?: string;
+  available: ProviderAvailability;
 }) {
   const [state, action, pending] = useActionState(login, null as { error?: string } | null);
   const [show, setShow] = useState(false);
@@ -58,33 +63,7 @@ export function LoginPanel({
           <form action={action} noValidate className="space-y-5">
             {next ? <input type="hidden" name="next" value={next} /> : null}
 
-            <div className="space-y-3">
-              <a
-                href="/api/auth/oauth/start?provider=linkedin_oidc"
-                className={PROVIDER}
-                style={{ boxShadow: "0 2px 6px rgba(15,23,42,0.05)" }}
-              >
-                <span className="grid size-[18px] place-items-center rounded-[3px] bg-[#0A66C2]" aria-hidden>
-                  <svg viewBox="0 0 24 24" className="size-3 text-white" fill="currentColor">
-                    <path d="M4.98 3.5A2.5 2.5 0 1 1 0 3.5a2.5 2.5 0 0 1 4.98 0ZM.24 8.25h4.5V24h-4.5V8.25Zm7.5 0h4.31v2.15h.06c.6-1.14 2.07-2.34 4.26-2.34 4.56 0 5.4 3 5.4 6.9V24h-4.5v-7.9c0-1.88-.03-4.3-2.62-4.3-2.62 0-3.02 2.05-3.02 4.16V24h-4.5V8.25Z" />
-                  </svg>
-                </span>
-                <span>Continue with LinkedIn</span>
-              </a>
-              <a
-                href="/api/auth/oauth/start?provider=google"
-                className={PROVIDER}
-                style={{ boxShadow: "0 2px 6px rgba(15,23,42,0.05)" }}
-              >
-                <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden>
-                  <path fill="#4285F4" d="M23.5 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.87c2.26-2.09 3.56-5.17 3.56-8.87Z" />
-                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.94-2.91l-3.87-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.28v3.09A12 12 0 0 0 12 24Z" />
-                  <path fill="#FBBC05" d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.62H1.28a12 12 0 0 0 0 10.76l3.99-3.09Z" />
-                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.62l3.99 3.09C6.22 6.86 8.87 4.75 12 4.75Z" />
-                </svg>
-                <span>Continue with Google</span>
-              </a>
-            </div>
+            <ProviderButtons verb="Continue" available={available} />
 
             <div className="space-y-4 pt-1">
               <div className="flex items-center gap-3">
