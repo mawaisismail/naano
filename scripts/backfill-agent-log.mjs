@@ -26,6 +26,13 @@
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { basename } from "node:path";
+import { redact, secretsFromEnv } from "./redact.mjs";
+
+// Credentials get pasted into chat; .agent-logs/ is public and permanent. Every
+// value in the local .env is stripped by literal match, and common key shapes
+// by pattern, each leaving a visible [REDACTED: …] marker so the log shows that
+// something was removed rather than being quietly rewritten.
+const SECRETS = secretsFromEnv();
 
 const [, , transcriptPath, author = "unknown"] = process.argv;
 if (!transcriptPath) {
@@ -154,6 +161,8 @@ let out =
   `  markers and slash-command plumbing.\n` +
   `  The exchange in flight when this ran is not here; it is written by the\n` +
   `  next run, once its response exists.\n` +
+  `  Credentials are removed, each leaving a visible [REDACTED: what] marker.\n` +
+  `  Nothing else is altered.\n` +
   `---\n`;
 
 complete.forEach((t, i) => {
@@ -161,11 +170,11 @@ complete.forEach((t, i) => {
   out += `\n[LOG_ENTRY type=PROMPT num=${n} session=${short}]\n`;
   out += `timestamp: ${t.at}\n`;
   out += `model: ${t.model ?? model}\n\n`;
-  out += `${t.prompt}\n`;
+  out += `${redact(t.prompt, SECRETS)}\n`;
   out += `\n[LOG_ENTRY type=RESPONSE num=${n} session=${short}]\n`;
   out += `timestamp: ${t.responseAt}\n`;
   out += `model: ${t.model ?? model}\n\n`;
-  out += `${t.response}\n`;
+  out += `${redact(t.response, SECRETS)}\n`;
 });
 
 mkdirSync(".agent-logs", { recursive: true });

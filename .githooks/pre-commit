@@ -7,7 +7,12 @@ set -uo pipefail
 staged=$(git diff --cached --name-only --diff-filter=ACM | grep '^\.agent-logs/' || true)
 [ -z "$staged" ] && exit 0
 
-PATTERNS='sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|xox[baprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|mongodb(\+srv)?://[^[:space:]/]*:[^[:space:]@]+@|postgres(ql)?://[^[:space:]/]*:[^[:space:]@]+@|(api[_-]?key|secret|passwd|password|token)[[:space:]]*[=:][[:space:]]*[A-Za-z0-9_\-]{24,}'
+# Shapes that must never reach a public log. This is the last line of defence:
+# scripts/redact.mjs already strips them when the log is generated, and this
+# blocks the commit if one ever gets past it. redis/rediss and the Resend
+# prefix were added after a real key was pasted into a prompt and neither the
+# generic patterns nor the URI ones would have caught it.
+PATTERNS='sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|re_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|xox[baprs]-[A-Za-z0-9-]{10,}|AVNS_[A-Za-z0-9_-]{16,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|(mongodb(\+srv)?|postgres(ql)?|rediss?|amqps?)://[^[:space:]/]*:[^[:space:]@]+@|(api[_-]?key|secret|passwd|password|token)[[:space:]]*[=:][[:space:]]*[A-Za-z0-9_\-]{24,}'
 
 # Strings the repo already publishes about itself are not disclosures.
 # .env.example and the CI workflow both carry the local Postgres placeholder

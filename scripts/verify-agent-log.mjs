@@ -21,6 +21,13 @@
  * Usage: node scripts/verify-agent-log.mjs <transcript.jsonl> <log.md>
  */
 import { readFileSync } from "node:fs";
+import { redact, secretsFromEnv } from "./redact.mjs";
+
+// The log is published redacted, so the comparison is made against redacted
+// transcript text. Otherwise every prompt containing a key would read as
+// ALTERED, and the check that matters — that nothing else changed — would be
+// drowned out by it.
+const SECRETS = secretsFromEnv();
 
 const [, , transcriptPath, logPath] = process.argv;
 if (!transcriptPath || !logPath) {
@@ -73,7 +80,7 @@ for (let i = 1; i < parts.length; i += 3) {
   logged.push({ num: Number(parts[i + 1]), text: body });
 }
 
-const norm = (s) => s.replace(/\s+/g, " ").trim();
+const norm = (s) => redact(s, SECRETS).replace(/\s+/g, " ").trim();
 const loggedSet = new Map(logged.map((l) => [norm(l.text), l.num]));
 
 const missing = [];
