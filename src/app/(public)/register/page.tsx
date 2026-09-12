@@ -4,6 +4,7 @@ import { LocaleButton } from "./parts";
 import { CreatorSignup } from "./CreatorSignup";
 import { BrandSignup } from "./BrandSignup";
 import { CreatorWizard } from "./CreatorWizard";
+import { BrandWizard } from "./BrandWizard";
 import { getCurrentUser } from "@/lib/session";
 
 /**
@@ -23,9 +24,9 @@ export const metadata = { title: "Create your account — Naano" };
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string; error?: string; provider?: string }>;
+  searchParams: Promise<{ role?: string; error?: string; provider?: string; step?: string }>;
 }) {
-  const { role, error, provider } = await searchParams;
+  const { role, error, provider, step } = await searchParams;
 
   // naano runs the whole creator wizard on this URL, so a signed-in creator
   // who has not finished it resumes here rather than seeing the sign-up form
@@ -50,6 +51,24 @@ export default async function RegisterPage({
   // Reopen the optional professional step on purpose, from the workspace.
   if (user?.role === "creator" && !user.invoiceMandateAcceptedAt && role === "professional") {
     return <CreatorWizard user={{ ...user, onboardingStep: 5 }} />;
+  }
+  // Brands run their own three-step wizard on this URL, the same way creators
+  // do. brandOnboardedAt is the gate, so a finished brand goes to the
+  // workspace rather than back through it — unless it asked to come back: the
+  // workspace links here to change the website or the value proposition, and
+  // an explicit ?step= is that request. Without it a finished brand would be
+  // bounced to /app and the link would look broken.
+  if (user?.role === "brand" && (!user.brandOnboardedAt || step)) {
+    return (
+      <BrandWizard
+        step={user.valueProp && step !== "1" ? 2 : 1}
+        company={user.companyName}
+        websiteUrl={user.websiteUrl}
+        valueProp={user.valueProp}
+        icps={user.icps}
+        source={user.brandDataSource}
+      />
+    );
   }
   if (user) redirect(user.role === "creator" ? "/creator" : "/app");
 

@@ -29,6 +29,24 @@ model User {
   role         String
   // brands only
   companyName  String?
+
+  // ---- brand onboarding, the 3-step wizard on /register?role=saas ---------
+  // The site naano reads to derive the value proposition and ICPs. We have no
+  // crawler, so the read is generated — brandDataSource records that, and the
+  // UI labels itself from the column rather than from a hardcoded string.
+  websiteUrl       String?
+  brandDataSource  String   @default("demo")
+  valueProp        String?
+  /// Three ideal customer profiles, each "Title — description".
+  icps             String[]
+  brandOnboardedAt DateTime?
+
+  // ---- wallet -------------------------------------------------------------
+  // Balance in whole euros. No payment processor is connected, so top-ups are
+  // credited directly and every entry is marked as a demo one; see
+  // WalletEntry.kind.
+  walletBalance    Int      @default(0)
+  walletEntries    WalletEntry[]
   // creators only: the slug this creator is booked under. For the demo account
   // it points at a seeded creator; for a real signup it is generated at
   // onboarding and must not collide with a seeded one.
@@ -231,4 +249,24 @@ model Message {
   readAt     DateTime?
 
   @@index([dealId])
+}
+
+/// A movement on a brand's Naano balance.
+///
+/// Top-ups in this build are credited immediately rather than going through a
+/// Stripe checkout, and are recorded with kind "demo_topup" so the Billing
+/// screen can say so per row instead of relying on a page-level banner that
+/// gets screenshotted away.
+model WalletEntry {
+  id        String   @id @default(cuid())
+  brand     User     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId   String
+  /// "demo_topup" | "topup" | "booking"
+  kind      String
+  /// Positive credits the balance, negative debits it. Whole euros.
+  amount    Int
+  reference String
+  createdAt DateTime @default(now())
+
+  @@index([brandId])
 }
