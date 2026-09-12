@@ -22,15 +22,48 @@ export const DEMO = {
   creator: { email: "creator@naano.demo", password: "demo1234" },
 };
 
-async function main() {
-  // idempotent: wipe the mutable half, leave the static creators alone
-  await prisma.click.deleteMany();
-  await prisma.deal.deleteMany();
-  await prisma.campaign.deleteMany();
-  await prisma.user.deleteMany();
+/**
+ * Every account this script owns ends in ".demo". Nothing outside that suffix
+ * is ever read, written or deleted here.
+ */
+const DEMO_DOMAIN = ".demo";
 
-  const brand = await prisma.user.create({
-    data: {
+async function main() {
+  // Rebuild the demo data WITHOUT deleting anybody's account.
+  //
+  // This used to open with prisma.user.deleteMany(), which wipes every real
+  // signup along with the demo ones — someone who registered, then ran the
+  // seed again, could no longer sign in and the error said their password was
+  // wrong. Seeding demo data must never be able to do that. `npm run db:reset`
+  // is the deliberate destructive path.
+  //
+  // Campaigns owned by demo brands are removed and rebuilt; deals and clicks
+  // go with them by cascade. A real creator who had applied to a demo campaign
+  // loses that application, which is correct — the campaign itself is being
+  // replaced.
+  const demoOwners = await prisma.user.findMany({
+    where: { email: { endsWith: DEMO_DOMAIN } },
+    select: { id: true, email: true },
+  });
+  if (demoOwners.length > 0) {
+    await prisma.campaign.deleteMany({
+      where: { brandId: { in: demoOwners.map((o) => o.id) } },
+    });
+  }
+
+  const preserved = await prisma.user.count({
+    where: { email: { not: { endsWith: DEMO_DOMAIN } } },
+  });
+
+  const brand = await prisma.user.upsert({
+    where: { email: DEMO.brand.email },
+    update: {
+      passwordHash: hashPassword(DEMO.brand.password),
+      name: "Alex Rivera",
+      role: "brand",
+      companyName: "Northwind Analytics",
+    },
+    create: {
       email: DEMO.brand.email,
       passwordHash: hashPassword(DEMO.brand.password),
       name: "Alex Rivera",
@@ -41,38 +74,41 @@ async function main() {
 
   // the creator demo account impersonates one of the seeded marketplace creators
   const me = CREATORS[3];
-  await prisma.user.create({
-    data: {
-      email: DEMO.creator.email,
-      passwordHash: hashPassword(DEMO.creator.password),
-      name: me.name,
-      role: "creator",
-      creatorSlug: me.slug,
-      // The demo creator is a finished account: a reviewer signing in should
-      // land in the workspace, not be dropped into onboarding. Leaving these
-      // unset made the seeded creator indistinguishable from a fresh signup.
-      onboardedAt: new Date(),
-      onboardingStep: 6,
-      emailVerified: true,
-      emailVerifiedAt: new Date(),
-      profileDataSource: "demo",
-      linkedinUrl: `https://www.linkedin.com/in/${me.slug}/`,
-      linkedinImportedAt: new Date(),
-      headline: me.headline,
-      bio: me.bio,
-      country: me.country,
-      countryCode: me.countryCode,
-      flag: me.flag,
-      avatarUrl: me.avatar,
-      followers: me.followers,
-      medianViews: me.medianViews,
-      postCost: me.postCost,
-      reactionsPerPost: me.reactionsPerPost,
-      commentsPerPost: me.commentsPerPost,
-      industries: me.verticals,
-      verticals: me.verticals,
-      icp: me.icp,
-    },
+  const creatorFields = {
+    passwordHash: hashPassword(DEMO.creator.password),
+    name: me.name,
+    role: "creator",
+    creatorSlug: me.slug,
+    // The demo creator is a finished account: a reviewer signing in should
+    // land in the workspace, not be dropped into onboarding. Leaving these
+    // unset made the seeded creator indistinguishable from a fresh signup.
+    onboardedAt: new Date(),
+    onboardingStep: 6,
+    emailVerified: true,
+    emailVerifiedAt: new Date(),
+    profileDataSource: "demo",
+    linkedinUrl: `https://www.linkedin.com/in/${me.slug}/`,
+    linkedinImportedAt: new Date(),
+    headline: me.headline,
+    bio: me.bio,
+    country: me.country,
+    countryCode: me.countryCode,
+    flag: me.flag,
+    avatarUrl: me.avatar,
+    followers: me.followers,
+    medianViews: me.medianViews,
+    postCost: me.postCost,
+    reactionsPerPost: me.reactionsPerPost,
+    commentsPerPost: me.commentsPerPost,
+    industries: me.verticals,
+    verticals: me.verticals,
+    icp: me.icp,
+  } as const;
+
+  await prisma.user.upsert({
+    where: { email: DEMO.creator.email },
+    update: creatorFields,
+    create: { email: DEMO.creator.email, ...creatorFields },
   });
 
   // Open campaigns for the creator-side Opportunities board. These are demo
@@ -122,16 +158,18 @@ async function main() {
     // seeded brand at first, which made every card on the Opportunities board
     // show the same company name — the board is meant to show who is buying.
     const slug = c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const owner = await prisma.user.create({
-      data: {
-        email: `hello@${slug}.demo`,
-        passwordHash: hashPassword("demo1234"),
-        name: `${c.name} team`,
-        role: "brand",
-        companyName: c.name,
-        emailVerified: true,
-        emailVerifiedAt: new Date(),
-      },
+    const ownerFields = {
+      passwordHash: hashPassword("demo1234"),
+      name: `${c.name} team`,
+      role: "brand",
+      companyName: c.name,
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
+    };
+    const owner = await prisma.user.upsert({
+      where: { email: `hello@${slug}.demo` },
+      update: ownerFields,
+      create: { email: `hello@${slug}.demo`, ...ownerFields },
     });
 
     await prisma.campaign.create({
@@ -246,7 +284,8 @@ async function main() {
 
   const clicks = await prisma.click.count();
   console.log(
-    `seeded: 2 users, 2 campaigns, ${picked.length + 1} deals, ${clicks} clicks\n` +
+    `seeded: demo accounts and campaigns rebuilt, ${clicks} clicks\n` +
+      `  ${preserved} real account${preserved === 1 ? "" : "s"} left untouched\n` +
       `  pending offer for ${me.name} in "${offer.name}"\n` +
       `  brand   ${DEMO.brand.email} / ${DEMO.brand.password}\n` +
       `  creator ${DEMO.creator.email} / ${DEMO.creator.password}`
