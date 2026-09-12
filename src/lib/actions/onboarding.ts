@@ -176,3 +176,47 @@ export async function finishLater() {
   });
   redirect("/creator");
 }
+
+
+/* ------------------------------------------------------------ my card --- */
+
+/**
+ * Edit the live card from /creator/card.
+ *
+ * The same three things the wizard collects, editable afterwards, because a
+ * price and a positioning line are exactly what a creator wants to change once
+ * they have seen how the card reads. Everything is clamped server-side: the
+ * card is what a brand is quoted from, so a price that arrived from a tampered
+ * form must not reach the marketplace.
+ */
+export async function updateCard(_prev: WizardState, formData: FormData): Promise<WizardState> {
+  const user = await requireCreator();
+  if (!user) redirect("/login");
+
+  const price = Math.round(Number(formData.get("postCost") ?? 0));
+  if (!Number.isFinite(price) || price < 20 || price > 5000) {
+    return { error: "Set a price per post between €20 and €5,000." };
+  }
+
+  const headline = str(formData.get("headline"), 220);
+  if (headline.length < 10) {
+    return { error: "Write at least a short headline — brands read it first." };
+  }
+
+  const industries = String(formData.get("industries") ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+  if (industries.length === 0) return { error: "Pick at least one industry." };
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { postCost: price, headline, industries, verticals: industries },
+  });
+
+  revalidatePath("/creator/card");
+  revalidatePath("/marketplace");
+  if (user.creatorSlug) revalidatePath(`/creators/${user.creatorSlug}`);
+  return null;
+}
