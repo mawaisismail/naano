@@ -12,25 +12,27 @@
 export const PROTECTED_PREFIXES = ["/app", "/studio", "/creator"] as const;
 
 /**
- * Signed-in users have no business here, so the proxy sends them onward.
+ * There is deliberately no "signed-in users get bounced off /login" rule.
  *
- * /register is deliberately NOT in this list. naano runs the whole creator
- * wizard on /register?role=influencer, so a signed-in creator mid-onboarding
- * has every reason to be there — bouncing them produced a redirect loop
- * between /register, /creator and back. The register page decides for itself:
- * it renders the wizard while onboarding is unfinished and redirects to the
- * right workspace once it is done.
+ * The proxy can only see that a session cookie EXISTS; it cannot check that it
+ * resolves to a user without a database round trip, which is exactly what a
+ * proxy must not do. Bouncing on the cookie alone produced an infinite loop
+ * the moment a cookie outlived its user — a deleted account, a reseeded
+ * database, a rotated secret:
+ *
+ *   /app     cookie present, proxy lets it through
+ *   layout   no user, redirects to /login
+ *   /login   cookie present, proxy sends it back to /app
+ *
+ * Both pages decide for themselves instead: /login redirects a genuinely
+ * signed-in user to their workspace, and the authenticated layout clears a
+ * dead cookie on the way out.
  */
-export const AUTH_ENTRY_PATHS = ["/login"] as const;
 
 export function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
-}
-
-export function isAuthEntryPath(pathname: string): boolean {
-  return AUTH_ENTRY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 /** Where a role lands after signing in. */

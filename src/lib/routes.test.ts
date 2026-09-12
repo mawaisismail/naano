@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  isProtectedPath,
-  isAuthEntryPath,
-  homeForRole,
-  PROTECTED_PREFIXES,
-} from "./routes";
+import { isProtectedPath, homeForRole, PROTECTED_PREFIXES } from "./routes";
 
 /**
  * This module decides what the proxy protects, so a mistake here is a hole in
@@ -47,19 +42,14 @@ describe("which paths sit behind a session", () => {
   });
 });
 
-describe("the sign-in entry points", () => {
-  it("recognises the sign-in page", () => {
-    expect(isAuthEntryPath("/login")).toBe(true);
-  });
-
-  it("leaves /register alone, because the creator wizard lives there", () => {
-    // Bouncing a signed-in creator off /register loops: /register -> /creator
-    // -> (not onboarded) -> /register.
-    expect(isAuthEntryPath("/register")).toBe(false);
-  });
-
-  it("is not fooled by a lookalike", () => {
-    expect(isAuthEntryPath("/logout-help")).toBe(false);
+describe("what the proxy deliberately does not do", () => {
+  it("exposes no auth-entry concept at all", async () => {
+    // The proxy can only see that a cookie exists, never that it resolves to a
+    // user. Redirecting on the cookie alone looped forever the moment one
+    // outlived its account: /app -> layout -> /login -> proxy -> /app.
+    const routes = await import("./routes");
+    expect("isAuthEntryPath" in routes).toBe(false);
+    expect("AUTH_ENTRY_PATHS" in routes).toBe(false);
   });
 });
 

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/session";
-import { isAuthEntryPath, isProtectedPath } from "@/lib/routes";
+import { isProtectedPath } from "@/lib/routes";
 
 /**
  * Proxy — Next.js 16's replacement for Middleware. Same execution model, new
@@ -23,6 +23,7 @@ export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
 
+
   // Signed out, asking for a protected page: send them to sign in, and carry
   // the destination so they land where they were going.
   if (!hasSession && isProtectedPath(pathname)) {
@@ -33,15 +34,10 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Signed in, asking for the sign-in page: nothing there for them. Which
-  // surface they belong to depends on their role, which the proxy cannot know
-  // without a query — /app resolves that in one hop.
-  if (hasSession && isAuthEntryPath(pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/app";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
+  // There is deliberately no rule sending a signed-in user away from /login.
+  // The cookie's existence is not proof it resolves to a user, and acting on
+  // it alone loops forever once a cookie outlives its account. See
+  // src/lib/routes.ts.
 
   return NextResponse.next();
 }
@@ -49,5 +45,5 @@ export function proxy(request: NextRequest) {
 export const config = {
   // Without a matcher the proxy runs on every request, static assets included.
   // These are the only paths whose response it can change.
-  matcher: ["/app/:path*", "/studio/:path*", "/creator/:path*", "/login", "/register"],
+  matcher: ["/app/:path*", "/studio/:path*", "/creator/:path*"],
 };

@@ -20,10 +20,11 @@ export default async function AuthenticatedLayout({
 }) {
   const user = await getCurrentUser();
 
-  // No `next` param: the proxy already redirected genuinely signed-out traffic
-  // with the destination attached. Reaching here means the cookie was present
-  // but did not resolve to a user, and the path is not worth preserving.
-  if (!user) redirect("/login");
+  // Reaching here with no user means a cookie was present but resolved to
+  // nobody — a deleted account, a reseeded database, a rotated secret. The
+  // cookie has to be dropped, and a Server Component cannot set one, so the
+  // clearing route does it on the way to sign-in.
+  if (!user) redirect("/api/auth/session/clear?next=/login");
 
   return <>{children}</>;
 }
