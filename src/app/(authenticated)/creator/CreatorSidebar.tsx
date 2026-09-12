@@ -100,7 +100,7 @@ export function CreatorSidebar() {
         collapsed ? "w-[78px]" : "w-[278px]"
       }`}
     >
-      <div className={`flex items-center gap-2.5 py-6 ${collapsed ? "justify-center px-0" : "px-6"}`}>
+      <div className={`flex items-center py-6 ${collapsed ? "flex-col gap-3 px-0" : "justify-between gap-2 px-6"}`}>
         <Link href="/" className="flex items-center gap-2.5" aria-label="naano">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="" className="size-6 shrink-0 object-contain" />
@@ -108,6 +108,24 @@ export function CreatorSidebar() {
             <span className="text-xl font-bold tracking-tight text-[#111827]">naano</span>
           )}
         </Link>
+
+        {/* The toggle sits with the logo rather than at the foot of the list:
+            it is the first place anyone looks for it, and it stays reachable
+            in the collapsed rail without scrolling past nine items. */}
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="grid size-9 shrink-0 place-items-center rounded-[10px] text-[#6B7280] transition-colors hover:bg-[#F3F4F6] hover:text-[#111827]"
+        >
+          {collapsed ? (
+            <PanelLeftOpen size={18} strokeWidth={1.8} aria-hidden />
+          ) : (
+            <PanelLeftClose size={18} strokeWidth={1.8} aria-hidden />
+          )}
+        </button>
       </div>
 
       <nav className={`space-y-1 ${collapsed ? "px-3" : "px-3"}`}>
@@ -137,27 +155,6 @@ export function CreatorSidebar() {
         })}
       </nav>
 
-      <div className={`mt-4 ${collapsed ? "px-3" : "px-3"}`}>
-        <button
-          type="button"
-          onClick={toggle}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={`flex w-full items-center gap-3 rounded-[10px] py-2 text-sm font-medium text-[#6B7280] transition-colors hover:bg-[#F7F8FA] hover:text-[#111827] ${
-            collapsed ? "justify-center px-0" : "px-3"
-          }`}
-        >
-          <span className="grid size-9 shrink-0 place-items-center rounded-[10px]">
-            {collapsed ? (
-              <PanelLeftOpen size={18} strokeWidth={1.8} aria-hidden />
-            ) : (
-              <PanelLeftClose size={18} strokeWidth={1.8} aria-hidden />
-            )}
-          </span>
-          {collapsed ? null : "Collapse"}
-        </button>
-      </div>
     </aside>
   );
 }

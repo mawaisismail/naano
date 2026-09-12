@@ -75,6 +75,82 @@ async function main() {
     },
   });
 
+  // Open campaigns for the creator-side Opportunities board. These are demo
+  // brands, not naano's real advertisers: the board needs enough variety for
+  // the industry, country and channel filters to be worth using, and inventing
+  // a handful of plausible B2B products is safer than republishing real ones.
+  const OPEN_CAMPAIGNS = [
+    {
+      name: "Premium Inboxes",
+      objective: "Get RevOps leads trialling our deliverability suite",
+      industries: ["SaaS", "Sales", "RevOps"],
+      countries: ["France", "Germany", "Netherlands", "United Kingdom", "Spain"],
+      days: 6,
+    },
+    {
+      name: "OrbiSearch",
+      objective: "Developers searching their own codebase in plain English",
+      industries: ["DevTools", "AI", "Software"],
+      countries: ["United Kingdom", "Germany", "Pakistan"],
+      days: 6,
+    },
+    {
+      name: "Northwind Analytics",
+      objective: "Show RevOps teams what their reporting stack is hiding",
+      industries: ["RevOps", "Data", "SaaS"],
+      countries: [],
+      days: 12,
+    },
+    {
+      name: "Fernpay",
+      objective: "Cross-border payouts for teams that hire everywhere",
+      industries: ["Fintech", "HR-Tech"],
+      countries: ["France", "Spain"],
+      days: 3,
+    },
+    {
+      name: "Halterview",
+      objective: "Security reviews that do not block a release train",
+      industries: ["Security", "DevTools"],
+      countries: ["United Kingdom", "Netherlands"],
+      days: 21,
+    },
+  ];
+
+  for (const c of OPEN_CAMPAIGNS) {
+    // Each demo campaign gets its own brand account. They all hung off the one
+    // seeded brand at first, which made every card on the Opportunities board
+    // show the same company name — the board is meant to show who is buying.
+    const slug = c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const owner = await prisma.user.create({
+      data: {
+        email: `hello@${slug}.demo`,
+        passwordHash: hashPassword("demo1234"),
+        name: `${c.name} team`,
+        role: "brand",
+        companyName: c.name,
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
+      },
+    });
+
+    await prisma.campaign.create({
+      data: {
+        brandId: owner.id,
+        name: c.name,
+        objective: c.objective,
+        keyMessages: `Why ${c.name} exists, in the creator's own words.`,
+        guidelines: "One post, your voice, no script. Disclose the partnership.",
+        landingUrl: `https://example.com/${c.name.toLowerCase().replace(/\s+/g, "-")}`,
+        status: "live",
+        channel: "linkedin",
+        industries: c.industries,
+        countries: c.countries,
+        postDeadline: new Date(Date.now() + c.days * 86_400_000),
+      },
+    });
+  }
+
   // A campaign already in flight, so the dashboard is not empty on first login
   // and the click counter has history to sit on top of.
   const picked = [CREATORS[0], CREATORS[1], CREATORS[2], me, CREATORS[5]];

@@ -120,6 +120,17 @@ model Campaign {
   status      String   @default("draft")
   createdAt   DateTime @default(now())
 
+  // ---- what the creator-side Opportunities board filters on ---------------
+  // "linkedin" today; the column exists because naano's board has a channel
+  // switcher above it and a single-value enum would have to be migrated the
+  // moment a second channel appears.
+  channel     String   @default("linkedin")
+  industries  String[]
+  countries   String[]
+  // The date a creator's post has to be live by. Null means the brand has not
+  // set one, which the board renders as "No deadline" rather than inventing one.
+  postDeadline DateTime?
+
   deals       Deal[]
 
   @@index([brandId])
