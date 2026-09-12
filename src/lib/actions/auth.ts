@@ -36,7 +36,7 @@ export async function login(_prev: unknown, formData: FormData) {
   const password = String(formData.get("password") ?? "");
 
   // Password guessing is only useful in bulk, so cap the bulk.
-  const gate = rateLimit(await callerKey("login"), 10, 60_000);
+  const gate = await rateLimit(await callerKey("login"), 10, 60_000);
   if (!gate.ok) {
     return {
       error: `Too many attempts. Try again in ${gate.retryAfterSec} seconds.`,
@@ -77,7 +77,7 @@ export async function register(_prev: unknown, formData: FormData) {
   const last = String(formData.get("lastName") ?? "").trim();
   const name = [first, last].filter(Boolean).join(" ") || String(formData.get("name") ?? "").trim();
 
-  const gate = rateLimit(await callerKey("register"), 5, 60_000);
+  const gate = await rateLimit(await callerKey("register"), 5, 60_000);
   if (!gate.ok) {
     return {
       error: `Too many attempts. Try again in ${gate.retryAfterSec} seconds.`,

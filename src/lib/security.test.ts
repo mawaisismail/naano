@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { safeNextPath } from "./auth";
-import { rateLimit } from "./rate-limit";
+import { rateLimit, rateLimitLocal } from "./rate-limit";
 import { clientIpHash } from "./tracking";
 
 describe("post-login redirect target", () => {
@@ -31,11 +31,17 @@ describe("post-login redirect target", () => {
   });
 });
 
-describe("rate limiting", () => {
+/**
+ * The fallback is tested directly rather than through rateLimit(): with Redis
+ * configured, rateLimit() counts in a shared store that other runs and other
+ * machines also write to, so a test asserting "the 6th call blocks" would be
+ * testing the state of a server, not the code.
+ */
+describe("rate limiting — per-process fallback", () => {
   it("allows up to the limit, then blocks", () => {
     const key = `test-${Math.random()}`;
-    for (let i = 0; i < 5; i++) expect(rateLimit(key, 5, 60_000).ok).toBe(true);
-    const blocked = rateLimit(key, 5, 60_000);
+    for (let i = 0; i < 5; i++) expect(rateLimitLocal(key, 5, 60_000).ok).toBe(true);
+    const blocked = rateLimitLocal(key, 5, 60_000);
     expect(blocked.ok).toBe(false);
     expect(blocked.retryAfterSec).toBeGreaterThan(0);
   });
@@ -43,17 +49,36 @@ describe("rate limiting", () => {
   it("keeps separate callers independent", () => {
     const a = `a-${Math.random()}`;
     const b = `b-${Math.random()}`;
-    for (let i = 0; i < 5; i++) rateLimit(a, 5, 60_000);
-    expect(rateLimit(a, 5, 60_000).ok).toBe(false);
-    expect(rateLimit(b, 5, 60_000).ok).toBe(true);
+    for (let i = 0; i < 5; i++) rateLimitLocal(a, 5, 60_000);
+    expect(rateLimitLocal(a, 5, 60_000).ok).toBe(false);
+    expect(rateLimitLocal(b, 5, 60_000).ok).toBe(true);
   });
 
   it("lets the window expire", async () => {
     const key = `w-${Math.random()}`;
-    expect(rateLimit(key, 1, 40).ok).toBe(true);
-    expect(rateLimit(key, 1, 40).ok).toBe(false);
+    expect(rateLimitLocal(key, 1, 40).ok).toBe(true);
+    expect(rateLimitLocal(key, 1, 40).ok).toBe(false);
     await new Promise((r) => setTimeout(r, 60));
-    expect(rateLimit(key, 1, 40).ok).toBe(true);
+    expect(rateLimitLocal(key, 1, 40).ok).toBe(true);
+  });
+});
+
+describe("rate limiting — shared window", () => {
+  it("blocks past the limit, whichever store is behind it", async () => {
+    const key = `shared-${Math.random()}`;
+    for (let i = 0; i < 3; i++) expect((await rateLimit(key, 3, 60_000)).ok).toBe(true);
+    const blocked = await rateLimit(key, 3, 60_000);
+    expect(blocked.ok).toBe(false);
+    expect(blocked.retryAfterSec).toBeGreaterThan(0);
+  });
+
+  it("honours a zero budget on the very first call", async () => {
+    // Whichever store answers, "no requests allowed" must mean none. The
+    // fallback used to let one through per window, so a limiter that had
+    // silently dropped to local counting was also silently weaker.
+    const key = `zero-${Math.random()}`;
+    expect((await rateLimit(key, 0, 60_000)).ok).toBe(false);
+    expect(rateLimitLocal(`local-${key}`, 0, 60_000).ok).toBe(false);
   });
 });
 

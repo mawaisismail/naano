@@ -50,7 +50,7 @@ export async function requestRecoveryCode(
 ): Promise<RecoveryState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
-  const gate = rateLimit(await callerKey("recovery-request"), 5, 60_000);
+  const gate = await rateLimit(await callerKey("recovery-request"), 5, 60_000);
   if (!gate.ok) {
     return { error: `Too many requests. Try again in ${gate.retryAfterSec} seconds.` };
   }
@@ -120,7 +120,7 @@ export async function redeemRecoveryCode(
   const code = String(formData.get("code") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  const gate = rateLimit(await callerKey("recovery-redeem"), 10, 60_000);
+  const gate = await rateLimit(await callerKey("recovery-redeem"), 10, 60_000);
   if (!gate.ok) {
     return { stage: "verify", error: `Too many attempts. Try again in ${gate.retryAfterSec} seconds.` };
   }
