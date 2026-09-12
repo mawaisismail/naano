@@ -172,6 +172,7 @@ model Deal {
   createdAt   DateTime @default(now())
 
   clicks      Click[]
+  messages    Message[]
 
   @@index([campaignId])
   @@index([creatorSlug])
@@ -209,4 +210,25 @@ model PasswordResetCode {
   createdAt DateTime @default(now())
 
   @@index([email])
+}
+
+/// One message in the conversation attached to a booking.
+///
+/// Threads hang off a Deal rather than off a pair of users: a conversation
+/// between a brand and a creator is always about a specific booking, and
+/// keying it that way means authorisation is the same question as "is this
+/// deal yours", which both sides already answer.
+model Message {
+  id         String   @id @default(cuid())
+  deal       Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId     String
+  /// "brand" | "creator" — which side wrote it.
+  senderRole String
+  senderName String
+  body       String
+  createdAt  DateTime @default(now())
+  /// Set when the other side has opened the thread.
+  readAt     DateTime?
+
+  @@index([dealId])
 }

@@ -282,6 +282,54 @@ async function main() {
     },
   });
 
+  // A conversation on each demo booking, so Messages is not an empty room on
+  // first sign-in. Written from both sides so the thread reads like one.
+  // The DEMO CREATOR's own bookings, not just any demo deal. Seeding threads
+  // onto other seeded creators' deals left the account a reviewer actually
+  // signs into with an empty Messages screen — which is the one thing this
+  // seed exists to prevent.
+  const demoDeals = await prisma.deal.findMany({
+    where: { creatorSlug: me.slug },
+    include: { campaign: { include: { brand: true } } },
+    take: 2,
+    orderBy: { createdAt: "asc" },
+  });
+
+  const SCRIPTS: [string, string][][] = [
+    [
+      ["brand", "Hi! We loved your last post on pipeline hygiene — would you be up for a sponsored one in the same voice?"],
+      ["creator", "Thanks! Yes, happy to. What is the angle you want and when does it need to be live?"],
+      ["brand", "Angle: why reporting breaks at Series B. Live by the 20th if that works. Brief is attached to the booking."],
+      ["creator", "That works. I will send a draft on Thursday so there is time for a round of notes."],
+    ],
+    [
+      ["brand", "Sent the invite over — the brief is short on purpose, your read on the topic is the point."],
+      ["creator", "Reading it now. One question: can I mention the migration we did, or is that under wraps?"],
+      ["brand", "Mention it, that is the most useful part."],
+    ],
+  ];
+
+  for (const [i, deal] of demoDeals.entries()) {
+    const script = SCRIPTS[i % SCRIPTS.length];
+    for (const [j, [role, body]] of script.entries()) {
+      await prisma.message.create({
+        data: {
+          dealId: deal.id,
+          senderRole: role,
+          senderName:
+            role === "brand"
+              ? deal.campaign.brand.companyName ?? deal.campaign.brand.name
+              : deal.creatorName,
+          body,
+          // Staggered backwards so the thread has a believable shape rather
+          // than four messages at the same instant.
+          createdAt: new Date(Date.now() - (script.length - j) * 3_600_000),
+          readAt: role === "creator" ? new Date() : null,
+        },
+      });
+    }
+  }
+
   const clicks = await prisma.click.count();
   console.log(
     `seeded: demo accounts and campaigns rebuilt, ${clicks} clicks\n` +
