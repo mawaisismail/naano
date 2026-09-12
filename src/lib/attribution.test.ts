@@ -14,6 +14,8 @@ import { makeTrackingCode } from "./tracking";
  */
 let db: PrismaClient;
 let brandId: string;
+/** Creators are User rows now, so a booking needs real ones to point at. */
+let creatorIds: string[] = [];
 
 beforeAll(async () => {
   db = testClient();
@@ -27,7 +29,32 @@ beforeAll(async () => {
     },
   });
   brandId = brand.id;
+
+  creatorIds = [];
 });
+
+/**
+ * Creators on demand. A booking needs a real user to point at, and each test
+ * asks for a different number of them — a fixed pool silently produced
+ * undefined ids for the one that wanted five.
+ */
+async function creatorsFor(count: number) {
+  while (creatorIds.length < count) {
+    const i = creatorIds.length;
+    const c = await db.user.create({
+      data: {
+        email: `creator-${i}@test.local`,
+        passwordHash: "x",
+        name: `Creator ${i}`,
+        role: "creator",
+        creatorSlug: `creator-${i}`,
+        onboardedAt: new Date(),
+      },
+    });
+    creatorIds.push(c.id);
+  }
+  return creatorIds.slice(0, count);
+}
 
 afterAll(async () => {
   await db.$disconnect();
@@ -40,6 +67,9 @@ beforeEach(async () => {
 });
 
 async function campaignWith(prices: number[]) {
+  // +1 so a test that needs one more creator than it books (the duplicate
+  // tracking-code case) always has one spare.
+  const ids = await creatorsFor(prices.length + 1);
   return db.campaign.create({
     data: {
       brandId,
@@ -51,9 +81,7 @@ async function campaignWith(prices: number[]) {
       status: "live",
       deals: {
         create: prices.map((price, i) => ({
-          creatorId: `cr_${i}`,
-          creatorSlug: `creator-${i}`,
-          creatorName: `Creator ${i}`,
+          creatorId: ids[i],
           price,
           status: "live",
           trackingCode: makeTrackingCode(),
@@ -104,10 +132,10 @@ describe.skipIf(!hasTestDb())("click attribution", () => {
     await expect(
       db.deal.create({
         data: {
+          // A different creator, so the unique tracking code is what fails
+          // rather than the one-booking-per-creator-per-campaign rule.
           campaignId: c.id,
-          creatorId: "cr_dup",
-          creatorSlug: "dup",
-          creatorName: "Dup",
+          creatorId: creatorIds[creatorIds.length - 1],
           price: 10,
           status: "invited",
           trackingCode: c.deals[0].trackingCode,

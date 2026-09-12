@@ -4,19 +4,23 @@ import { useState } from "react";
 import Link from "next/link";
 import { NumberField, Placeholder, SelectField, TextField } from "@/components/tools/fields";
 import { BANDS, euros } from "@/lib/tool-data";
-import { CREATORS } from "@/lib/creators";
+import type { Creator } from "@/lib/creators";
 
 /**
  * The free creator search. naano's runs on their own team; ours does the part
- * that can honestly be automated — it matches the brief against this build's
+ * that can honestly be automated — it matches the brief against the live
  * marketplace and shows the shortlist immediately, then offers the full search.
+ *
+ * The marketplace is passed in from the server: it is whoever has signed up,
+ * so when it is empty the form says so instead of showing a shortlist drawn
+ * from nowhere.
  */
 
 const VERTICALS = [
   "Sales", "RevOps", "DevTools", "HR-Tech", "Product", "Marketing Ops", "Fintech", "Vertical SaaS",
 ] as const;
 
-export function CreatorSearchForm() {
+export function CreatorSearchForm({ creators }: { creators: Creator[] }) {
   const [email, setEmail] = useState("");
   const [vertical, setVertical] = useState<string>(VERTICALS[0]);
   const [budget, setBudget] = useState("");
@@ -24,9 +28,11 @@ export function CreatorSearchForm() {
   const [sent, setSent] = useState(false);
 
   const b = Number(budget) > 0 ? Number(budget) : 0;
-  const matches = CREATORS.filter((c) => c.verticals.some((v) => v === vertical))
+  const matches = creators
+    .filter((c) => c.verticals.some((v) => v === vertical))
     .filter((c) => (b > 0 ? c.postCost <= b : true))
-    .sort((x, y) => y.matchScore - x.matchScore)
+    // No brand ICPs to score against here, so reach is the honest ordering.
+    .sort((x, y) => y.followers - x.followers)
     .slice(0, 5);
 
   const valid = /.+@.+\..+/.test(email) && brief.trim().length >= 20;

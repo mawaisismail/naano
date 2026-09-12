@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ToolPage, ToolSection, ToolFaq, ToolTable, Formula } from "@/components/tools/ToolPage";
 import { findTool } from "@/lib/tools";
-import { BANDS, DATASET_SIZE } from "@/lib/tool-data";
+import { BANDS } from "@/lib/tool-data";
 import { EngagementCalculator } from "./Calculator";
 
 const tool = findTool("linkedin-engagement-rate-calculator")!;
@@ -54,13 +54,8 @@ export default function Page() {
             />
             <p className="mt-4 text-[14px] leading-[1.5] text-[#6B6D74]">
               Above the range for your tier: excellent. Inside it: healthy. Below
-              it: below benchmark. Cross-checked against the {DATASET_SIZE}{" "}
-              creators listed in this build&apos;s marketplace, whose median
-              engagement rate per tier is{" "}
-              {BANDS.filter((b) => b.n > 0)
-                .map((b) => `${b.medianEngagement}%`)
-                .join(" / ")}
-              .
+              it: below benchmark. The published median engagement rate per tier
+              is {BANDS.map((b) => `${b.medianEngagement}%`).join(" / ")}.
             </p>
           </ToolSection>
 

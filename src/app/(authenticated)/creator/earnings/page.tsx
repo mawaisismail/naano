@@ -10,7 +10,7 @@ export default async function EarningsPage() {
   if (!user) redirect("/login");
 
   const deals = await prisma.deal.findMany({
-    where: { creatorSlug: user.creatorSlug ?? "__none__" },
+    where: { creatorId: user.id },
     include: { campaign: { include: { brand: true } } },
     orderBy: { createdAt: "desc" },
   });

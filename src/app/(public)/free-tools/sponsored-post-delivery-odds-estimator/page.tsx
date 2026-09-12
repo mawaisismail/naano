@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ToolPage, ToolSection, ToolFaq, ToolTable, Formula } from "@/components/tools/ToolPage";
 import { findTool } from "@/lib/tools";
-import { BANDS, DATASET_SIZE, deliveryOdds, euros } from "@/lib/tool-data";
+import { BANDS, deliveryOdds, euros } from "@/lib/tool-data";
 import { OddsCalculator } from "./Calculator";
 
 const tool = findTool("sponsored-post-delivery-odds-estimator")!;
@@ -40,7 +40,7 @@ export default function Page() {
         <>
           <ToolSection
             title="What offers at each price actually deliver"
-            lead={`Modelled against the median flat fee in each follower band across the ${DATASET_SIZE} creators listed in this build's marketplace.`}
+            lead="Modelled against the published median flat fee in each follower band."
           >
             <ToolTable
               head={["Offer, relative to the band median", "Published", "What happens to the rest"]}

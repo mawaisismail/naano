@@ -33,17 +33,17 @@ export async function applyToCampaign(_prev: ApplyState, formData: FormData): Pr
 
   // Applying twice must not create a second booking for the same post.
   const existing = await prisma.deal.findFirst({
-    where: { campaignId, creatorSlug: user.creatorSlug },
+    where: { campaignId, creatorId: user.id },
   });
   if (existing) return { ok: true };
 
   await prisma.deal.create({
     data: {
       campaignId,
-      creatorId: `usr_${user.id}`,
-      creatorSlug: user.creatorSlug,
-      creatorName: user.name,
+      creatorId: user.id,
       price: user.postCost ?? 0,
+      // The creator started this, so the brand is the side that answers it.
+      initiatedBy: "creator",
       status: "invited",
       trackingCode: makeTrackingCode(),
     },

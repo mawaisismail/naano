@@ -4,7 +4,7 @@ import { Check, ExternalLink, Share2 } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { MarketplaceCard } from "@/app/(public)/register/MarketplaceCard";
-import { CREATORS } from "@/lib/creators";
+import { allCreators } from "@/lib/creator-profile";
 
 export const metadata = { title: "Community — Naano" };
 
@@ -23,23 +23,13 @@ export default async function CommunityPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  // Onboarded signups first, then the seeded marketplace creators, ranked by
-  // the reach a sponsored post is estimated to get.
-  const signups = await prisma.user.findMany({
-    where: { role: "creator", onboardedAt: { not: null } },
-    select: { name: true, avatarUrl: true, medianViews: true, followers: true, creatorSlug: true },
-  });
+  // Everyone with a finished card, ranked by the reach a sponsored post is
+  // estimated to get. An empty list means nobody has onboarded yet, which the
+  // board below says rather than filling itself in.
+  const creators = await allCreators();
 
-  const leaders = [
-    ...signups.map((s) => ({
-      name: s.name,
-      avatar: s.avatarUrl,
-      slug: s.creatorSlug,
-      reach: (s.medianViews ?? Math.round((s.followers ?? 0) * 0.6)) * 6,
-    })),
-    ...CREATORS.map((c) => ({ name: c.name, avatar: c.avatar, slug: c.slug, reach: c.medianViews * 6 })),
-  ]
-    .filter((l, i, all) => all.findIndex((x) => x.slug === l.slug) === i)
+  const leaders = creators
+    .map((c) => ({ name: c.name, avatar: c.avatar, slug: c.slug, reach: c.medianViews * 6 }))
     .sort((a, b) => b.reach - a.reach)
     .slice(0, 5);
 
@@ -77,7 +67,7 @@ export default async function CommunityPage() {
               <div className="grid h-[128px] flex-1 min-w-[200px] place-items-center rounded-[14px] border border-[#EEF0F4] bg-[#FBFCFE]">
                 <SlackMark />
                 <div className="mt-3 flex -space-x-2">
-                  {CREATORS.slice(0, 7).map((c) => (
+                  {creators.slice(0, 7).map((c) => (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img key={c.slug} src={c.avatar} alt="" className="size-7 rounded-full border-2 border-white bg-white object-cover" />
                   ))}

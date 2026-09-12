@@ -1,4 +1,4 @@
-import { CREATORS, type Creator } from "@/lib/creators";
+import type { Creator } from "@/lib/creators";
 
 /**
  * Ranking creators against a brand's ICPs — the "AI Matching" score.
@@ -93,12 +93,21 @@ export function scoreCreator(
   return { creator, score, reasons, matched: hits, total };
 }
 
-/** The marketplace, best match first. */
+/**
+ * Rank a list of creators, best match first.
+ *
+ * The list is passed in rather than imported: creators are database rows now,
+ * so who is in the marketplace is a question for the caller, and this file
+ * stays a pure function of its inputs — which is why it can be tested without
+ * a database.
+ */
 export function rankCreators(
+  creators: Creator[],
   brand: { icps: string[]; valueProp?: string | null },
-  limit = CREATORS.length
+  limit = creators.length
 ): Match[] {
-  return CREATORS.map((c) => scoreCreator(c, brand))
+  return creators
+    .map((c) => scoreCreator(c, brand))
     .sort((a, b) => b.score - a.score || b.creator.followers - a.creator.followers)
     .slice(0, limit);
 }
@@ -147,24 +156,25 @@ const toScore = (cos: number) => {
  * available, so the caller always gets a list.
  */
 export async function rankCreatorsSemantic(
+  creators: Creator[],
   brand: { icps: string[]; valueProp?: string | null },
-  limit = CREATORS.length
+  limit = creators.length
 ): Promise<{ matches: Match[]; method: MatchMethod }> {
   const icps = brand.icps.filter((i) => i.trim());
-  if (icps.length === 0) {
-    return { matches: rankCreators(brand, limit), method: "lexical" };
+  if (icps.length === 0 || creators.length === 0) {
+    return { matches: rankCreators(creators, brand, limit), method: "lexical" };
   }
 
   // One request for both sides: the creator half is almost always a cache hit,
   // so what actually goes to the model is the handful of new ICP lines.
-  const creatorTexts = CREATORS.map(creatorText);
+  const creatorTexts = creators.map(creatorText);
   const vectors = await embedCached([...icps, ...creatorTexts]);
-  if (!vectors) return { matches: rankCreators(brand, limit), method: "lexical" };
+  if (!vectors) return { matches: rankCreators(creators, brand, limit), method: "lexical" };
 
   const icpVectors = vectors.slice(0, icps.length);
   const creatorVectors = vectors.slice(icps.length);
 
-  const matches = CREATORS.map((creator, i) => {
+  const matches = creators.map((creator, i) => {
     const sims = icpVectors.map((v) => cosine(v, creatorVectors[i]));
     const best = Math.max(...sims);
 

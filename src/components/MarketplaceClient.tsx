@@ -4,12 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CreatorCard } from "@/components/CreatorCard";
-import { VERTICALS, TIERS, COUNTRIES, followerTier, type Creator } from "@/lib/creators";
+import { VERTICALS, TIERS, countriesOf, followerTier, type Creator } from "@/lib/creators";
 import { euro, cx } from "@/lib/format";
 
 type Sort = "match" | "price-asc" | "price-desc" | "reach";
 
 export function MarketplaceClient({ creators: CREATORS }: { creators: Creator[] }) {
+  // The country filter offers the countries actually represented, rather than
+  // a fixed list that would show options matching nobody.
+  const COUNTRIES = countriesOf(CREATORS);
   const router = useRouter();
   const params = useSearchParams();
 

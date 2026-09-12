@@ -1,14 +1,18 @@
-import { CREATORS } from "@/lib/creators";
-
 /**
  * The numbers the free tools run on.
  *
  * naano's tools quote "239 real bookings" from their own marketplace. We do not
- * have their transaction data and will not invent it under their name, so every
- * figure below is derived at build time from this project's own marketplace
- * dataset (32 creators in src/lib/creators.ts) and each tool page says so.
- * The band boundaries and the published-rate curve are the only hand-set
- * values; they follow the tiers naano uses so the two read the same way.
+ * have their transaction data and will not invent it under their name, so the
+ * figures below are a published rate card, following the tiers naano uses and
+ * the medians they state publicly. Each tool page says where they came from.
+ *
+ * They used to be computed from a file of thirty invented creators, which made
+ * a made-up dataset look like a measurement. A rate card is the honest version
+ * of the same numbers: hand-set, stated as such, and stable.
+ *
+ * These are deliberately NOT derived from the live marketplace. A planner that
+ * changes its benchmark every time somebody signs up is not a benchmark, and on
+ * day one it would divide by zero.
  */
 
 export type Band = {
@@ -19,8 +23,6 @@ export type Band = {
   medianCost: number;
   /** Median engagement rate, as a percentage, inside this band. */
   medianEngagement: number;
-  /** How many creators in the dataset fall in the band. */
-  n: number;
   /** Healthy engagement-rate range for the band, as percentages. */
   good: [number, number];
 };
@@ -40,31 +42,35 @@ function median(xs: number[]): number {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-export const BANDS: Band[] = TIERS.map(([label, min, max, good]) => {
-  const inBand = CREATORS.filter((c) => c.followers >= min && c.followers < max);
-  return {
-    label,
-    min,
-    max,
-    n: inBand.length,
-    medianCost: Math.round(median(inBand.map((c) => c.postCost))),
-    medianEngagement: Number(median(inBand.map((c) => c.engagementRate)).toFixed(2)),
-    good,
-  };
-});
+/** Median flat fee and engagement per band, in the order TIERS declares them. */
+const RATE_CARD: [medianCost: number, medianEngagement: number][] = [
+  [80, 3.1],
+  [100, 2.8],
+  [160, 2.6],
+  [320, 2.1],
+  [420, 1.8],
+];
+
+export const BANDS: Band[] = TIERS.map(([label, min, max, good], i) => ({
+  label,
+  min,
+  max,
+  medianCost: RATE_CARD[i][0],
+  medianEngagement: RATE_CARD[i][1],
+  good,
+}));
 
 export function bandFor(followers: number): Band {
   return BANDS.find((b) => followers >= b.min && followers < b.max) ?? BANDS[BANDS.length - 1];
 }
 
-/** Median flat fee across the whole dataset — what the budget planner books at. */
-export const MEDIAN_POST_COST = Math.round(median(CREATORS.map((c) => c.postCost)));
-export const DATASET_SIZE = CREATORS.length;
+/** Median flat fee across the bands — what the budget planner books at. */
+export const MEDIAN_POST_COST = Math.round(median(RATE_CARD.map(([cost]) => cost)));
 
 /**
  * Share of accepted bookings that end in a published post, by offer size.
  * Low offers get ignored more often; the curve flattens once the fee is at or
- * above the band median. Anchored on this project's seeded booking states.
+ * above the band median. Hand-set, and the tool page says so.
  */
 export function deliveryOdds(offer: number, band: Band): {
   published: number;

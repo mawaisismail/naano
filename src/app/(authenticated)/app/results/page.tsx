@@ -52,6 +52,7 @@ export default async function ResultsPage({
       orderBy: { createdAt: "desc" },
       include: {
         campaign: { select: { id: true, name: true } },
+        creator: true,
         _count: { select: { clicks: true } },
       },
     }),
@@ -164,8 +165,8 @@ export default async function ResultsPage({
                   return (
                     <li key={d.id}>
                       <div className="flex items-center justify-between gap-4 text-sm">
-                        <Link href={`/creators/${d.creatorSlug}`} className="font-semibold text-[#111827] hover:text-[#2563eb]">
-                          {d.creatorName}
+                        <Link href={`/creators/${d.creator.creatorSlug}`} className="font-semibold text-[#111827] hover:text-[#2563eb]">
+                          {d.creator.name}
                         </Link>
                         <span className="text-[#4B5563]">
                           {d._count.clicks} click{d._count.clicks === 1 ? "" : "s"} ·{" "}
@@ -252,7 +253,7 @@ export default async function ResultsPage({
                 <tbody>
                   {deals.map((d) => (
                     <tr key={d.id} className="border-b border-[#F5F6F8] text-sm last:border-b-0">
-                      <td className="py-4 font-semibold text-[#111827]">{d.creatorName}</td>
+                      <td className="py-4 font-semibold text-[#111827]">{d.creator.name}</td>
                       <td className="py-4 text-[#4B5563]">
                         <Link href={`/app/campaigns/${d.campaign.id}`} className="hover:text-[#111827]">
                           {d.campaign.name}

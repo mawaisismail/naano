@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CREATORS } from "@/lib/creators";
+import { CREATORS } from "@/test/creators";
 import { rankCreators, scoreCreator } from "@/lib/matching";
 
 const revops = CREATORS.find((c) => c.verticals.includes("RevOps"))!;
@@ -38,13 +38,13 @@ describe("scoreCreator", () => {
 
 describe("rankCreators", () => {
   it("returns the marketplace best-match first", () => {
-    const ranked = rankCreators({ icps: ["RevOps leaders — own the CRM"], valueProp: null });
+    const ranked = rankCreators(CREATORS, { icps: ["RevOps leaders — own the CRM"], valueProp: null });
     const scores = ranked.map((r) => r.score);
     expect(scores).toEqual([...scores].sort((a, b) => b - a));
   });
 
   it("honours the limit", () => {
-    expect(rankCreators({ icps: [], valueProp: null }, 4)).toHaveLength(4);
+    expect(rankCreators(CREATORS, { icps: [], valueProp: null }, 2)).toHaveLength(2);
   });
 });
 

@@ -6,12 +6,8 @@
  *
  *   1. apply the migrations (creates the tables; without this every page 500s
  *      with P2021 "table does not exist")
- *   2. seed ONLY when the database is empty
+ *   2. report how many users exist, so a deploy log says what it landed on
  *
- * Step 2 is guarded on purpose. The seed clears the mutable tables before
- * writing, so running it on every deploy would wipe whatever a reviewer had
- * just done — accepted an offer, advanced a deal, generated clicks — every time
- * a commit landed. Empty means fresh, so seed; otherwise leave it alone.
  */
 import "dotenv/config";
 import { execSync } from "node:child_process";
@@ -88,14 +84,7 @@ try {
   process.exit(1);
 }
 
-// Only a genuinely empty database gets seeded. Anything else is left alone,
-// because the seed clears tables before writing.
-const isEmpty = userCount === 0;
+// Nothing is written. There is no seed: the marketplace is whoever has signed
+// up, so an empty database is a correct state and not one to paper over.
 console.log(`[deploy-db] existing users: ${userCount}`);
-
-if (isEmpty) {
-  console.log("[deploy-db] empty database — seeding demo data");
-  run("npx tsx prisma/seed.ts", migrateUrl);
-} else {
-  console.log("[deploy-db] database already has data — leaving it alone");
-}
+console.log("[deploy-db] schema up to date; no seed to run");

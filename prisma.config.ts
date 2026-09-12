@@ -6,7 +6,9 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
-    seed: "tsx prisma/seed.ts",
+    // No seed. The marketplace is whoever has signed up; a fresh database is
+    // legitimately empty, and filling it with invented people would put rows
+    // in production that no one can explain.
   },
   datasource: {
     // Vercel Postgres does not set DATABASE_URL, so resolve the same way the

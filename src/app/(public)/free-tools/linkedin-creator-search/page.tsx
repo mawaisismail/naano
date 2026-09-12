@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { ToolPage, ToolSection, ToolFaq } from "@/components/tools/ToolPage";
 import { findTool } from "@/lib/tools";
-import { DATASET_SIZE } from "@/lib/tool-data";
 import { CreatorSearchForm } from "./RequestForm";
+import { allCreators } from "@/lib/creator-profile";
 
 const tool = findTool("linkedin-creator-search")!;
 
@@ -27,11 +27,11 @@ const FAQS: [string, string][] = [
   ],
   [
     "Does the shortlist only contain creators from this marketplace?",
-    `The instant one does: it matches your brief against the ${DATASET_SIZE} creators listed here. The wider search looks across LinkedIn, including creators who have never listed anywhere.`,
+    "The instant one does: it matches your brief against the creators listed here. The wider search looks across LinkedIn, including creators who have never listed anywhere.",
   ],
 ];
 
-export default function Page() {
+export default async function Page() {
   return (
     <ToolPage
       tool={tool}
@@ -75,7 +75,7 @@ export default function Page() {
         lightCta: ["Open the budget planner", "/free-tools/creator-campaign-budget-planner"],
       }}
     >
-      <CreatorSearchForm />
+      <CreatorSearchForm creators={await allCreators()} />
     </ToolPage>
   );
 }

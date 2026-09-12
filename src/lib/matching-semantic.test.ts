@@ -16,7 +16,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { embedCached } = vi.hoisted(() => ({ embedCached: vi.fn() }));
 vi.mock("@/lib/ai/embeddings-cache", () => ({ embedCached }));
 
-import { CREATORS } from "@/lib/creators";
+import { CREATORS } from "@/test/creators";
 import { rankCreatorsSemantic } from "@/lib/matching";
 
 const ICPS = ["RevOps leaders — own the CRM", "Sales leaders — carry a number"];
@@ -37,12 +37,15 @@ describe("rankCreatorsSemantic", () => {
     // Both ICPs at 0°; the first creator sits on top of them, the rest further away.
     // The call is always [...icps, ...creators] in that order, so the stub can
     // be built from the two lengths rather than from the argument.
+    // Angles chosen so every cosine lands strictly inside the display range:
+    // outside it they all clamp to the same score, and the tie-break on
+    // followers decides the order instead of the similarity.
     embedCached.mockResolvedValue([
       ...ICPS.map(() => at(0)),
-      ...CREATORS.map((_, i) => at(i * 5)),
+      ...CREATORS.map((_, i) => at(35 + i * 8)),
     ]);
 
-    const { matches, method } = await rankCreatorsSemantic({ icps: ICPS, valueProp: null }, 5);
+    const { matches, method } = await rankCreatorsSemantic(CREATORS, { icps: ICPS, valueProp: null }, 3);
     expect(method).toBe("embeddings");
     expect(matches[0].creator.id).toBe(CREATORS[0].id);
     expect(matches.map((m) => m.score)).toEqual([...matches.map((m) => m.score)].sort((a, b) => b - a));
@@ -50,7 +53,7 @@ describe("rankCreatorsSemantic", () => {
 
   it("keeps the score inside a range a person can read", async () => {
     embedCached.mockResolvedValue([...ICPS, ...CREATORS].map(() => at(0)));
-    const { matches } = await rankCreatorsSemantic({ icps: ICPS, valueProp: null });
+    const { matches } = await rankCreatorsSemantic(CREATORS, { icps: ICPS, valueProp: null });
     for (const m of matches) {
       expect(m.score).toBeGreaterThanOrEqual(55);
       expect(m.score).toBeLessThanOrEqual(99);
@@ -59,7 +62,7 @@ describe("rankCreatorsSemantic", () => {
 
   it("never counts more matched ICPs than it can name", async () => {
     embedCached.mockResolvedValue([...ICPS, ...CREATORS].map(() => at(0)));
-    const { matches } = await rankCreatorsSemantic({ icps: ICPS, valueProp: null });
+    const { matches } = await rankCreatorsSemantic(CREATORS, { icps: ICPS, valueProp: null });
     for (const m of matches) {
       expect(m.matched).toBeLessThanOrEqual(m.total);
       if (m.matched > 0) expect(m.reasons.length).toBe(m.matched);
@@ -68,13 +71,13 @@ describe("rankCreatorsSemantic", () => {
 
   it("falls back to the lexical ranking when the model is unavailable", async () => {
     embedCached.mockResolvedValue(null);
-    const { matches, method } = await rankCreatorsSemantic({ icps: ICPS, valueProp: null }, 3);
+    const { matches, method } = await rankCreatorsSemantic(CREATORS, { icps: ICPS, valueProp: null }, 3);
     expect(method).toBe("lexical");
     expect(matches).toHaveLength(3);
   });
 
   it("does not call the model when there are no ICPs to compare against", async () => {
-    const { method } = await rankCreatorsSemantic({ icps: [], valueProp: null }, 3);
+    const { method } = await rankCreatorsSemantic(CREATORS, { icps: [], valueProp: null }, 3);
     expect(method).toBe("lexical");
     expect(embedCached).not.toHaveBeenCalled();
   });

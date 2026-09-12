@@ -1,8 +1,10 @@
-// Only the MUTABLE half of the product lives here.
+// Every creator is a row.
 //
-// Creators are static seed data in src/lib/creators.ts — they do not change at
-// runtime, so they are not rows. A Deal references a creator by its seed id.
-// That keeps browsing the marketplace working with no database attached.
+// They used to be a static file of invented people, with a Deal pointing at a
+// seed id that no foreign key could check. That made the marketplace a
+// brochure: nothing a real signup did could appear in it, and a booking could
+// reference a creator who did not exist. Creators are Users now, a Deal has a
+// real relation to one, and the marketplace is whoever has finished onboarding.
 //
 // Postgres everywhere — local, CI and production. There is no second provider
 // and no datasource switching: the database the tests run against is the same
@@ -140,6 +142,8 @@ model User {
   commentsPerPost  Int?
 
   campaigns    Campaign[]
+  /// Bookings where this user is the creator being booked.
+  deals        Deal[]     @relation("CreatorDeals")
 }
 
 model Campaign {
@@ -176,11 +180,15 @@ model Deal {
   id          String   @id @default(cuid())
   campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   campaignId  String
-  // seed creator id, e.g. "cr_007" — not a foreign key by design
+  // The creator being booked. A real foreign key: a booking that points at
+  // nobody is not a booking, and the database is the right place to say so.
+  creator     User     @relation("CreatorDeals", fields: [creatorId], references: [id], onDelete: Cascade)
   creatorId   String
-  creatorSlug String
-  creatorName String
   price       Int
+  /// "brand" when the brand invited this creator, "creator" when the creator
+  /// applied. It decides who is allowed to accept: the side that did NOT start
+  /// it. Without this, one side could book the other unilaterally.
+  initiatedBy String   @default("creator")
   // "invited" | "accepted" | "declined" | "draft" | "scheduled" | "live" | "paid"
   status      String   @default("invited")
   // the short code behind /r/<code>; this is what makes attribution per-creator
@@ -193,7 +201,10 @@ model Deal {
   messages    Message[]
 
   @@index([campaignId])
-  @@index([creatorSlug])
+  @@index([creatorId])
+  /// One booking per creator per campaign. Applying twice, or being invited
+  /// after applying, must not create a second post to pay for.
+  @@unique([campaignId, creatorId])
 }
 
 model Click {

@@ -52,15 +52,15 @@ export function orderConversations<
 export async function conversationsFor(user: {
   id: string;
   role: string;
-  creatorSlug: string | null;
 }): Promise<Conversation[]> {
   const deals = await prisma.deal.findMany({
     where:
       user.role === "brand"
         ? { campaign: { brandId: user.id } }
-        : { creatorSlug: user.creatorSlug ?? "__none__" },
+        : { creatorId: user.id },
     include: {
       campaign: { include: { brand: { select: { name: true, companyName: true } } } },
+      creator: { select: { name: true } },
       messages: { orderBy: { createdAt: "desc" }, take: 1 },
       _count: { select: { messages: { where: { senderRole: { not: user.role }, readAt: null } } } },
     },
@@ -72,7 +72,7 @@ export async function conversationsFor(user: {
     dealId: d.id,
     counterpart:
       user.role === "brand"
-        ? d.creatorName
+        ? d.creator.name
         : d.campaign.brand.companyName ?? d.campaign.brand.name,
     campaign: d.campaign.name,
     status: d.status,

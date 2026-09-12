@@ -32,7 +32,7 @@ export default async function CreatorOverview() {
 
   // Campaigns this creator is not already booked on, newest first.
   const myDeals = await prisma.deal.findMany({
-    where: { creatorSlug: user.creatorSlug ?? "__none__" },
+    where: { creatorId: user.id },
     include: { campaign: { include: { brand: true } } },
     orderBy: { createdAt: "desc" },
   });

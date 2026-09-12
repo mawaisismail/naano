@@ -2,12 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Nav } from "@/components/site/Nav";
 import { Footer } from "@/components/site/Footer";
-import { CREATORS, getCreator, followerTier } from "@/lib/creators";
-import { allCreators } from "@/lib/creator-profile";
+import { followerTier } from "@/lib/creators";
+import { allCreators, getCreatorBySlug } from "@/lib/creator-profile";
 import { compact, euro } from "@/lib/format";
 
-// Signed-up creators are not known at build time, so this page renders on
-// demand. generateStaticParams would only ever cover the seeded ones.
+// A creator page exists the moment someone finishes onboarding, so there is
+// nothing to enumerate at build time.
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
@@ -16,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const slug = (await params).slug;
-  const c = getCreator(slug) ?? (await allCreators()).find((x) => x.slug === slug);
+  const c = await getCreatorBySlug(slug);
   return c
     ? { title: `${c.name} — Naano`, description: c.headline }
     : { title: "Creator not found — Naano" };

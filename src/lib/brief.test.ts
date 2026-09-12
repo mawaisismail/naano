@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { draftBrief, OBJECTIVES } from "./brief";
-import { CREATORS } from "./creators";
+import { CREATORS } from "@/test/creators";
 
 const devtools = CREATORS.filter((c) => c.verticals[0] === "DevTools").slice(0, 2);
 const hrtech = CREATORS.filter((c) => c.verticals[0] === "HR-Tech").slice(0, 2);

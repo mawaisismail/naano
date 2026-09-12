@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ToolPage, ToolSection, ToolFaq, ToolTable, Formula } from "@/components/tools/ToolPage";
 import { findTool } from "@/lib/tools";
-import { BANDS, DATASET_SIZE, euros } from "@/lib/tool-data";
+import { BANDS, euros } from "@/lib/tool-data";
 import { WorthCalculator } from "./Calculator";
 
 const tool = findTool("linkedin-creator-worth-calculator")!;
@@ -40,15 +40,15 @@ export default function Page() {
         <>
           <ToolSection
             title="What a sponsored post costs by audience size"
-            lead={`Median flat fee per post by follower band, taken from the ${DATASET_SIZE} creators listed in this build's marketplace.`}
+            lead="Median flat fee per post by follower band. A published rate card, not a reading of anyone's private transaction data."
           >
             <ToolTable
               head={["Follower tier", "Median fee per post", "What sets the price inside the band"]}
               rows={BANDS.map((b) => [
                 b.label,
-                b.n > 0 ? euros(b.medianCost) : "—",
-                b.n > 0
-                  ? `${b.n} creators, median engagement ${b.medianEngagement}%. Engagement above ${b.good[1]}% pulls the fee up; below ${b.good[0]}% pulls it down.`
+                euros(b.medianCost),
+                true
+                  ? `Median engagement ${b.medianEngagement}%. Engagement above ${b.good[1]}% pulls the fee up; below ${b.good[0]}% pulls it down.`
                   : "No creators in this band in the dataset.",
               ] as [string, string, string])}
             />

@@ -24,7 +24,7 @@ export default async function CampaignDetail({
     include: {
       deals: {
         orderBy: { createdAt: "asc" },
-        include: { _count: { select: { clicks: true } } },
+        include: { creator: true, _count: { select: { clicks: true } } },
       },
     },
   });
@@ -90,10 +90,10 @@ export default async function CampaignDetail({
                 <div className="min-w-48 flex-1">
                   <div className="flex items-center gap-3">
                     <Link
-                      href={`/creators/${d.creatorSlug}`}
+                      href={`/creators/${d.creator.creatorSlug}`}
                       className="text-[15px] font-bold text-[#111827] hover:text-[#2563eb]"
                     >
-                      {d.creatorName}
+                      {d.creator.name}
                     </Link>
                     <StatusPill status={d.status} />
                   </div>

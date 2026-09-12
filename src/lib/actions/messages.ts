@@ -28,12 +28,12 @@ async function authorise(dealId: string, userId: string) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, creatorSlug: true },
+    select: { role: true },
   });
   if (!user) return null;
 
   if (user.role === "brand") return deal.campaign.brandId === userId ? deal : null;
-  return user.creatorSlug && deal.creatorSlug === user.creatorSlug ? deal : null;
+  return deal.creatorId === userId ? deal : null;
 }
 
 export async function sendMessage(_prev: MessageState, formData: FormData): Promise<MessageState> {

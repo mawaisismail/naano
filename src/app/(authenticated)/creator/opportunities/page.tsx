@@ -17,7 +17,7 @@ export default async function OpportunitiesPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.deal.findMany({
-      where: { creatorSlug: user.creatorSlug ?? "__none__" },
+      where: { creatorId: user.id },
       select: { campaignId: true },
     }),
   ]);

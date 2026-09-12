@@ -71,7 +71,7 @@ export function WorthCalculator() {
             <ResultGrid>
               <Metric label="Fee per post" value={`${euros(low)}–${euros(high)}`} tone="brand" note="Flat fee for one sponsored post" />
               <Metric label="Engagement rate" value={pct(er, 2)} note={`Healthy for this tier: ${lo}–${hi}%`} />
-              <Metric label="Band median" value={euros(band.medianCost)} note={`${band.label}, ${band.n} creators in this dataset`} />
+              <Metric label="Band median" value={euros(band.medianCost)} note={band.label} />
             </ResultGrid>
             <Verdict tone={tone}>
               {tone === "good" ? (

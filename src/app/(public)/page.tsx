@@ -4,6 +4,7 @@ import { Footer } from "@/components/site/Footer";
 import { ScaleFrame } from "@/components/site/ScaleFrame";
 import { Testimonial } from "@/components/site/Testimonial";
 import { MarketplaceShowcase } from "@/components/site/MarketplaceShowcase";
+import { allCreators } from "@/lib/creator-profile";
 import { CampaignJourney } from "@/components/site/CampaignJourney";
 import { ProofSection } from "@/components/site/ProofSection";
 import { ResultsSection } from "@/components/site/ResultsSection";
@@ -11,7 +12,7 @@ import { PricingSection } from "@/components/site/PricingSection";
 import { FaqSection } from "@/components/site/FaqSection";
 import { BookSection } from "@/components/site/BookSection";
 
-export default function Home() {
+export default async function Home() {
   return (
     <>
       <ScaleFrame>
@@ -174,7 +175,7 @@ export default function Home() {
 
         <Testimonial />
 
-        <MarketplaceShowcase />
+        <MarketplaceShowcase creators={await allCreators()} />
 
         <CampaignJourney />
       </ScaleFrame>

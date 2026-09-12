@@ -8,13 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "prisma generate",
-    "logs": "node scripts/agent-logs.mjs"
+    "logs": "node scripts/agent-logs.mjs",
+    "test:e2e": "node e2e/core-flow.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

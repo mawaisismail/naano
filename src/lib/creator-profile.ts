@@ -1,5 +1,5 @@
 import type { User } from "@prisma/client";
-import { CREATORS, type Creator } from "@/lib/creators";
+import type { Creator } from "@/lib/creators";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/slug";
 
@@ -37,10 +37,10 @@ export function toCreator(u: User): Creator | null {
     followers,
     medianViews,
     postCost: u.postCost ?? 0,
-    // Real signups have no attribution history yet, so there is nothing to
-    // score a genuine fit on. A flat, honest baseline beats inventing a number
-    // that looks like earned data.
-    matchScore: 75,
+    // A creator card carries no intrinsic match score — fit is a question
+    // about a specific brand's ICPs, answered in matching.ts. This field is
+    // the neutral value the marketplace sorts nothing by.
+    matchScore: 0,
     engagementRate: medianViews > 0 ? Number(((reactions / medianViews) * 100).toFixed(2)) : 0,
     reactionsPerPost: reactions,
     commentsPerPost: u.commentsPerPost ?? 0,
@@ -49,18 +49,12 @@ export function toCreator(u: User): Creator | null {
 }
 
 
-/**
- * Pick a slug that collides with neither a seeded creator nor another account.
- * The seeded creators are not database rows, so a unique index cannot see them.
- */
+/** Pick a slug no other account is already using. */
 export async function reserveCreatorSlug(name: string, userId: string) {
   const base = slugify(name);
-  const seeded = new Set(CREATORS.map((c) => c.slug));
 
   for (let i = 0; i < 50; i++) {
     const candidate = i === 0 ? base : `${base}-${i + 1}`;
-    if (seeded.has(candidate)) continue;
-
     const taken = await prisma.user.findFirst({
       where: { creatorSlug: candidate, NOT: { id: userId } },
       select: { id: true },
@@ -71,18 +65,34 @@ export async function reserveCreatorSlug(name: string, userId: string) {
   return `${base}-${userId.slice(-6)}`;
 }
 
-/** Seeded creators plus every onboarded signup, as one list. */
+/**
+ * The marketplace: every creator who has finished onboarding.
+ *
+ * There is no second source. If this list is empty, no creator has completed a
+ * card yet, and the screens say exactly that rather than padding it out.
+ */
 export async function allCreators(): Promise<Creator[]> {
   const rows = await prisma.user.findMany({
-    where: { role: "creator", onboardedAt: { not: null } },
+    where: { role: "creator", onboardedAt: { not: null }, creatorSlug: { not: null } },
     orderBy: { onboardedAt: "desc" },
   });
 
-  const live = rows
-    .map(toCreator)
-    .filter((c): c is Creator => c !== null)
-    // a signed-up creator must not shadow a seeded slug
-    .filter((c) => !CREATORS.some((s) => s.slug === c.slug));
+  return rows.map(toCreator).filter((c): c is Creator => c !== null);
+}
 
-  return [...live, ...CREATORS];
+/** One creator by their public slug, or null. */
+export async function getCreatorBySlug(slug: string): Promise<Creator | null> {
+  const row = await prisma.user.findFirst({
+    where: { role: "creator", creatorSlug: slug, onboardedAt: { not: null } },
+  });
+  return row ? toCreator(row) : null;
+}
+
+/** The user id behind a creator card. Bookings need the row, not the slug. */
+export async function creatorUserIdFor(slug: string): Promise<string | null> {
+  const row = await prisma.user.findFirst({
+    where: { role: "creator", creatorSlug: slug, onboardedAt: { not: null } },
+    select: { id: true },
+  });
+  return row?.id ?? null;
 }

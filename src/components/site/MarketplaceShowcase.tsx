@@ -1,4 +1,4 @@
-import { CREATORS } from "@/lib/creators";
+import type { Creator } from "@/lib/creators";
 import { CreatorCard } from "@/components/CreatorCard";
 
 const CLAIMS = [
@@ -42,13 +42,18 @@ const RAIL_PATHS: Record<string, string> = {
  * naano renders the app preview as a flat screenshot,
  * marketplace-screenshot-clean-v2.png. That file carries photographs of real,
  * named creators, so it is not reproduced here. The preview below is live DOM
- * built from this project's own invented creators and generated avatars — same
- * composition, nobody's likeness republished, and it stays in sync with the
- * real card component rather than going stale as an image.
+ * built from the live marketplace — same composition, nobody's likeness
+ * republished, and it stays in sync with the real card component rather than
+ * going stale as an image.
+ *
+ * With fewer than six creators signed up the window renders what there is.
+ * With none, the section does not render at all: an empty browser frame on the
+ * home page is worse than one section fewer.
  */
-export function MarketplaceShowcase() {
+export function MarketplaceShowcase({ creators }: { creators: Creator[] }) {
   // naano shows two rows of three inside the window
-  const featured = CREATORS.slice(0, 6);
+  const featured = creators.slice(0, 6);
+  if (featured.length === 0) return null;
 
   return (
     <section

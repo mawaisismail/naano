@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ToolPage, ToolSection, ToolFaq, ToolTable, Formula } from "@/components/tools/ToolPage";
 import { findTool } from "@/lib/tools";
-import { BANDS, DATASET_SIZE, deliveryOdds, euros } from "@/lib/tool-data";
+import { BANDS, deliveryOdds, euros } from "@/lib/tool-data";
 import { BudgetPlanner } from "./Calculator";
 
 const tool = findTool("creator-campaign-budget-planner")!;
@@ -40,12 +40,11 @@ export default function Page() {
         <>
           <ToolSection
             title="What a budget buys at each audience size"
-            lead={`Median flat fee and delivery rate per follower band, from the ${DATASET_SIZE} creators listed in this build's marketplace.`}
+            lead="Median flat fee and delivery rate per follower band. A published rate card, not a reading of anyone's private transaction data."
           >
             <ToolTable
               head={["Follower tier", "Median fee per post", "What €3,000 buys"]}
               rows={BANDS.map((band) => {
-                if (band.n === 0) return [band.label, "—", "No creators in this band in the dataset."] as [string, string, string];
                 const booked = Math.floor(3000 / band.medianCost);
                 const odds = deliveryOdds(band.medianCost, band);
                 const published = Math.round(booked * odds.published);
