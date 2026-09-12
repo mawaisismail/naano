@@ -46,30 +46,46 @@ async function main() {
     select: { id: true, email: true },
   });
   if (demoOwners.length > 0) {
-    await prisma.campaign.deleteMany({
-      where: { brandId: { in: demoOwners.map((o) => o.id) } },
-    });
+    const ids = demoOwners.map((o) => o.id);
+    await prisma.campaign.deleteMany({ where: { brandId: { in: ids } } });
+    // The demo wallet is rebuilt too, so a re-seed starts from an empty
+    // balance and the "Add budget" journey is there to be walked again. Only
+    // demo-owned rows are touched; a real brand's ledger is never a fixture.
+    await prisma.walletEntry.deleteMany({ where: { brandId: { in: ids } } });
+    await prisma.user.updateMany({ where: { id: { in: ids } }, data: { walletBalance: 0 } });
   }
 
   const preserved = await prisma.user.count({
     where: { email: { not: { endsWith: DEMO_DOMAIN } } },
   });
 
+  // Like the demo creator, the demo brand is a FINISHED account: signing in
+  // should open the workspace, not drop a reviewer back into the three-step
+  // wizard. Everything the workspace reads is set here, including the ICPs the
+  // matching scores against.
+  const brandFields = {
+    passwordHash: hashPassword(DEMO.brand.password),
+    name: "Alex Rivera",
+    role: "brand",
+    companyName: "Northwind Analytics",
+    emailVerified: true,
+    emailVerifiedAt: new Date(),
+    websiteUrl: "https://northwind-analytics.demo",
+    brandDataSource: "demo",
+    valueProp:
+      "Northwind Analytics rebuilds revenue reporting for B2B teams: one source of truth across CRM, billing and product usage, so RevOps can answer where pipeline actually came from without three days of spreadsheet work.",
+    icps: [
+      "RevOps leaders — own the CRM and the reporting nobody trusts",
+      "Sales leaders — carry a number and need attribution they can defend",
+      "Founders at Series A-C — want one dashboard instead of four tools",
+    ],
+    brandOnboardedAt: new Date(),
+  };
+
   const brand = await prisma.user.upsert({
     where: { email: DEMO.brand.email },
-    update: {
-      passwordHash: hashPassword(DEMO.brand.password),
-      name: "Alex Rivera",
-      role: "brand",
-      companyName: "Northwind Analytics",
-    },
-    create: {
-      email: DEMO.brand.email,
-      passwordHash: hashPassword(DEMO.brand.password),
-      name: "Alex Rivera",
-      role: "brand",
-      companyName: "Northwind Analytics",
-    },
+    update: brandFields,
+    create: { email: DEMO.brand.email, ...brandFields },
   });
 
   // the creator demo account impersonates one of the seeded marketplace creators
