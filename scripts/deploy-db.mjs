@@ -13,6 +13,7 @@
  * just done — accepted an offer, advanced a deal, generated clicks — every time
  * a commit landed. Empty means fresh, so seed; otherwise leave it alone.
  */
+import "dotenv/config";
 import { execSync } from "node:child_process";
 
 const pg = /^postgres(ql)?:\/\//i;

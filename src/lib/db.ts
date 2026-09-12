@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { resolveDatabaseUrl } from "@/lib/database-url";
+import { pgConnection } from "@/lib/database-ssl";
 
 /**
  * The Prisma client, bound to Postgres through the pg driver adapter.
@@ -11,7 +12,11 @@ import { resolveDatabaseUrl } from "@/lib/database-url";
  * production, and the differences surface as production-only bugs.
  */
 const makeClient = () =>
-  new PrismaClient({ adapter: new PrismaPg({ connectionString: resolveDatabaseUrl() }) });
+  new PrismaClient({
+    // Managed Postgres requires TLS; see database-ssl.ts for why the CA
+    // matters, and why sslmode has to come out of the URL when it is used.
+    adapter: new PrismaPg(pgConnection(resolveDatabaseUrl())),
+  });
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 

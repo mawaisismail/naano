@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { pgConnection } from "@/lib/database-ssl";
 
 /** True when globalSetup provisioned a throwaway Postgres schema. */
 export const hasTestDb = () => Boolean(process.env.TEST_SCHEMA_URL);
@@ -25,5 +26,7 @@ export function testClient() {
     throw new Error(`refusing to run tests against a non-test schema: ${schema || "(none)"}`);
   }
 
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString: url }, { schema }) });
+  // Same TLS treatment as the app: the test database is the managed one, and
+  // it refuses an unverified connection.
+  return new PrismaClient({ adapter: new PrismaPg(pgConnection(url), { schema }) });
 }

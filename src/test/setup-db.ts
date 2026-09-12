@@ -18,6 +18,26 @@ import { randomBytes } from "node:crypto";
  * tests skip themselves. Every pure-logic test still runs.
  */
 
+/**
+ * Environment for a Prisma CLI call that must act on the test schema.
+ *
+ * Overriding DATABASE_URL alone is not enough: prisma.config.ts resolves the
+ * DIRECT url for migrations, so a DIRECT_DATABASE_URL in .env wins and the
+ * migration lands in `public` — the application's own data — while the tests
+ * then query an empty test schema. Every variable that can decide the target
+ * has to be pointed at the same place.
+ */
+function cliEnv(testUrl: string): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    DATABASE_URL: testUrl,
+    DIRECT_DATABASE_URL: testUrl,
+    POSTGRES_URL_NON_POOLING: "",
+    POSTGRES_PRISMA_URL: "",
+    POSTGRES_URL: "",
+  };
+}
+
 function baseUrl(): string | null {
   const raw = process.env.TEST_DATABASE_URL?.trim() || process.env.DATABASE_URL?.trim();
   if (!raw) return null;
@@ -43,16 +63,13 @@ export function setup() {
   // Apply the real migration chain rather than pushing the schema shape. The
   // suite then fails if a migration is broken, which is the thing that
   // actually breaks a deploy — a schema push would paper straight over it.
-  execSync("npx prisma migrate deploy", {
-    env: { ...process.env, DATABASE_URL: testUrl },
-    stdio: "pipe",
-  });
+  execSync("npx prisma migrate deploy", { env: cliEnv(testUrl), stdio: "pipe" });
 
   return () => {
     delete process.env.TEST_SCHEMA_URL;
     try {
       execSync("npx prisma db execute --stdin", {
-        env: { ...process.env, DATABASE_URL: testUrl },
+        env: cliEnv(testUrl),
         input: `DROP SCHEMA IF EXISTS "${schema}" CASCADE;`,
         stdio: "pipe",
       });
