@@ -31,20 +31,26 @@ export function CreatorSidebar() {
         <span className="text-xl font-bold tracking-tight text-[#111827]">naano</span>
       </Link>
 
-      <nav className="space-y-0.5 px-3">
+      <nav className="space-y-1 px-3">
         {ITEMS.map(([label, href, icon]) => {
           const active = pathname === href;
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm transition-colors ${
-                active
-                  ? "bg-[#F5F8FF] font-semibold text-[#2563eb]"
-                  : "font-medium text-[#4B5563] hover:bg-[#F7F8FA]"
+              className={`flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors ${
+                active ? "font-semibold text-[#2563eb]" : "font-medium text-[#4B5563] hover:bg-[#F7F8FA]"
               }`}
             >
-              <Glyph name={icon} />
+              {/* naano tints the icon's own square, not the whole row, and the
+                  glyph sits small inside it. */}
+              <span
+                className={`grid size-9 shrink-0 place-items-center rounded-[10px] ${
+                  active ? "bg-[#EFF4FF] text-[#2563eb]" : "text-[#6B7280]"
+                }`}
+              >
+                <Glyph name={icon} />
+              </span>
               {label}
             </Link>
           );
@@ -55,7 +61,7 @@ export function CreatorSidebar() {
 }
 
 function Glyph({ name }: { name: string }) {
-  const p = { viewBox: "0 0 24 24", className: "size-[18px] shrink-0", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
+  const p = { viewBox: "0 0 24 24", className: "size-[17px] shrink-0", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
   switch (name) {
     case "grid": return <svg {...p}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>;
     case "card": return <svg {...p}><rect x="2" y="5" width="20" height="14" rx="2.5" /><circle cx="8" cy="11" r="2" /><path d="M14 10h4M14 14h4M4.5 16c.8-1.6 2-2.4 3.5-2.4s2.7.8 3.5 2.4" /></svg>;

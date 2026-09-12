@@ -27,6 +27,8 @@ export function MarketplaceCard({
   postCost = null,
   industries = [],
   flag = null,
+  costLabel,
+  postDataPill = false,
 }: {
   name: string;
   /** Everything below is null until step 2 imports it. */
@@ -36,6 +38,12 @@ export function MarketplaceCard({
   postCost?: number | null;
   industries?: string[];
   flag?: string | null;
+  /** "Cost / post" before a price is set, "Potential cost" in the wizard,
+   *  "Chosen cost" once the creator has picked one. naano uses all three. */
+  costLabel?: string;
+  /** The workspace copy carries a "No post data available" pill above the
+   *  data bar; the wizard copy does not. */
+  postDataPill?: boolean;
 }) {
   const trimmed = name.trim();
   const initial = (trimmed[0] ?? "Y").toUpperCase();
@@ -121,6 +129,18 @@ export function MarketplaceCard({
               {headline || "Your LinkedIn headline and topics will appear here."}
             </p>
 
+            {postDataPill ? (
+              <div className="mt-4 flex justify-center">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3.5 py-1.5 text-[13px] text-[#4B5563]">
+                  <svg viewBox="0 0 24 24" className="size-3.5 text-[#2563eb]" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                    <rect x="3" y="5" width="18" height="16" rx="2.5" />
+                    <path d="M3 10h18M8 3v4M16 3v4" />
+                  </svg>
+                  No post data available
+                </span>
+              </div>
+            ) : null}
+
             <div className="mx-auto mt-4 flex max-w-[360px] items-center gap-3 pb-5 text-left">
               <span className="shrink-0 text-xs font-medium text-[#8A909B]">Data</span>
               <span
@@ -145,7 +165,7 @@ export function MarketplaceCard({
             <Stat label="Followers" value={followers ? compact(followers) : null} />
             <Stat label="Est. impressions" divided />
             <Stat
-              label={postCost ? "Potential cost" : "Cost / post"}
+              label={costLabel ?? (postCost ? "Potential cost" : "Cost / post")}
               value={postCost ? `€${postCost}` : null}
             />
           </dl>
