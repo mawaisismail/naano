@@ -67,6 +67,9 @@ function parseEnv(file) {
 export function secretsFromEnv(file = ".env") {
   const found = [];
   for (const [key, value] of parseEnv(file)) {
+    // NEXT_PUBLIC_* is compiled into the browser bundle by definition, so it
+    // is not a secret and redacting it only makes the log harder to read.
+    if (key.startsWith("NEXT_PUBLIC_")) continue;
     if (!SECRET_KEY.test(key)) continue;
     const v = value.trim();
     if (v.length < MIN_SECRET_LEN || NOT_SECRET.has(v.toLowerCase())) continue;

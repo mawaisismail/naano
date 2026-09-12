@@ -37,8 +37,11 @@ without repeating the secrets.
 | `RESEND_API_KEY` | Send-only key |
 | `EMAIL_FROM` | `Naano <no-reply@awaisismail.me>` — see §4 |
 | `DEMO_PASSWORD_RESET` | `0`. Setting it to `1` re-enables a fixed reset PIN, which is an account-takeover hole. |
-| `GOOGLE_CLIENT_ID` / `_SECRET` | Optional; the buttons say "not configured" without them. |
+| `GOOGLE_CLIENT_ID` / `_SECRET` | Optional; the buttons say "not available" without them. |
 | `LINKEDIN_CLIENT_ID` / `_SECRET` | Optional, same. |
+| `EXA_API_KEY` | The site read in brand onboarding. Without it the read falls back to generated text, labelled. |
+| `CLOUDFLARE_ACCOUNT_ID` | Workers AI account. |
+| `CLOUDFLARE_API_TOKEN` | Workers AI token, "Workers AI: Read" and nothing else. Without it, matching falls back to word overlap and says so. |
 
 `DATABASE_POOL_MAX` is optional: it defaults to 3 on Vercel, because every
 concurrent request is its own instance with its own pool and the plan allows 20
@@ -90,14 +93,26 @@ Scopes: `openid email profile` (Google), `openid profile email` (LinkedIn, via
 "Sign In with LinkedIn using OpenID Connect" — the older `r_liteprofile` scopes
 are not granted to new apps).
 
-## 6. What the build does
+## 6. Model latency, and the function limit
+
+Step 1 of brand onboarding crawls the site and runs a model over it: about ten
+seconds in practice, capped at fifteen for the crawl and twenty for the model.
+Vercel's default function limit is ten seconds, which would kill that mid-read
+and show a failure for a request that was working — so `/register` declares
+`maxDuration = 60`. The wizard shows its "Reading your brand…" step throughout,
+which is what that screen is for.
+
+Nothing else in the app waits on a model. Creator embeddings are cached in
+Valkey and in process, so AI Matching is a cache read after the first request.
+
+## 7. What the build does
 
 `npm run build` runs `prisma generate`, then `scripts/deploy-db.mjs`, then
 `next build`. The middle step applies migrations, and seeds **only when the
 database has no users** — so a deploy never overwrites data a reviewer has
 entered.
 
-## 7. After the first deploy
+## 8. After the first deploy
 
 - [ ] `https://naano.awaisismail.me` loads
 - [ ] Sign in as `brand@naano.demo` / `demo1234` → the brand workspace
@@ -105,3 +120,6 @@ entered.
 - [ ] Password reset sends a real email (requires §4)
 - [ ] Rate limiting holds across instances: eleven failed logins in a minute
       should be refused, not ten per server
+- [ ] Brand sign-up with a real company URL reaches "Read from <domain>", not
+      the "Generated, not read" note
+- [ ] AI Matching says "Scored by meaning", not "Word-overlap ranking"
