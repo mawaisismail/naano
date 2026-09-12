@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Check, ExternalLink, Share2 } from "lucide-react";
-import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { MarketplaceCard } from "@/app/(public)/register/MarketplaceCard";
 import { allCreators } from "@/lib/creator-profile";

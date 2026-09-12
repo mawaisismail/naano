@@ -59,13 +59,17 @@ describe("pool sizing", () => {
     expect(pgConnection("postgres://u:p@h/db", { VERCEL: "1" }).max).toBeLessThanOrEqual(5);
   });
 
-  it("is larger for a single long-lived server", () => {
-    expect(pgConnection("postgres://u:p@h/db", {}).max).toBeGreaterThan(5);
+  it("stays inside a shared plan off serverless too", () => {
+    // The whole plan is 20 connections and local work shares it with the
+    // deployed site, so "not serverless" is not a licence to take ten.
+    const max = pgConnection("postgres://u:p@h/db", {}).max;
+    expect(max).toBeGreaterThan(1);
+    expect(max).toBeLessThanOrEqual(5);
   });
 
   it("honours an explicit override", () => {
     expect(pgConnection("postgres://u:p@h/db", { DATABASE_POOL_MAX: "2" }).max).toBe(2);
     // Nonsense values fall back rather than producing a pool of NaN.
-    expect(pgConnection("postgres://u:p@h/db", { DATABASE_POOL_MAX: "x" }).max).toBe(10);
+    expect(pgConnection("postgres://u:p@h/db", { DATABASE_POOL_MAX: "x" }).max).toBe(4);
   });
 });

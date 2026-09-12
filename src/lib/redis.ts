@@ -29,25 +29,35 @@ export function redis(): Redis | null {
     return null;
   }
 
-  const client = new Redis(url, {
-    // A rate-limit check sits in the request path, so every wait is bounded:
-    // one retry, a short connect timeout, and a command timeout that turns a
-    // hung socket into a fallback instead of a stalled request.
-    maxRetriesPerRequest: 1,
-    connectTimeout: 3000,
-    // 3s, not 1.5s: the timeout starts when a command is queued, so the very
-    // first check after boot also has to cover the TLS handshake — measured at
-    // ~1.3s to the managed instance. A tighter bound made every cold start
-    // fall back to memory.
-    commandTimeout: 3000,
-    retryStrategy: (times) => Math.min(times * 200, 2000),
-    // The offline queue stays ON. Turning it off makes commands issued during
-    // the initial handshake fail instantly, so the first check after every
-    // cold start silently counted in memory instead — the limiter would be
-    // weakest at exactly the moment a burst arrives. maxRetriesPerRequest and
-    // commandTimeout are what bound the wait; the queue only covers connect.
-    enableOfflineQueue: true,
-  });
+  let client: Redis;
+  try {
+    client = new Redis(url, {
+      // A rate-limit check sits in the request path, so every wait is
+      // bounded: one retry, a short connect timeout, and a command timeout
+      // that turns a hung socket into a fallback instead of a stalled request.
+      maxRetriesPerRequest: 1,
+      connectTimeout: 3000,
+      // 3s, not 1.5s: the timeout starts when a command is queued, so the
+      // very first check after boot also has to cover the TLS handshake —
+      // measured at ~1.3s to the managed instance. A tighter bound made every
+      // cold start fall back to memory.
+      commandTimeout: 3000,
+      retryStrategy: (times) => Math.min(times * 200, 2000),
+      // The offline queue stays ON. Turning it off makes commands issued
+      // during the initial handshake fail instantly, so the first check after
+      // every cold start silently counted in memory instead — weakest at
+      // exactly the moment a burst arrives. maxRetriesPerRequest and
+      // commandTimeout bound the wait; the queue only covers connect.
+      enableOfflineQueue: true,
+    });
+  } catch (err) {
+    // A malformed URL throws from the constructor. Everything that uses this
+    // treats null as "no cache", which is survivable; throwing here would
+    // take down whichever page happened to ask first.
+    console.error(`[redis] could not be created: ${err instanceof Error ? err.message : "error"}`);
+    globalThis.__naanoRedis = null;
+    return null;
+  }
 
   // Unhandled 'error' on an ioredis client is a process-level crash. Log once:
   // a flapping connection must not fill the log with the same line.

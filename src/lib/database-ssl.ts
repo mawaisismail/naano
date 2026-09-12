@@ -53,14 +53,17 @@ export function withoutSslMode(url: string): string {
  * How many connections one process may hold.
  *
  * This matters more than it looks. The managed plan allows 20 connections in
- * total, and a serverless deployment does not run one process — it runs one
- * per concurrent request, each opening its own pool. At the pg default of 10,
- * two warm instances exhaust the whole plan and the third request fails with
- * "too many clients", which looks like a database outage and is really a
- * configuration mistake.
+ * TOTAL, across everything: every serverless instance, every local dev server,
+ * every test run and every one-off script. A serverless deployment does not
+ * run one process — it runs one per concurrent request, each opening its own
+ * pool — so at the pg default of 10, two warm instances take the whole plan
+ * and the next request fails with "too many clients". That reads as a database
+ * outage and is really a configuration mistake.
  *
- * Small per instance is therefore correct on serverless, where breadth comes
- * from having many instances; a single long-lived server wants the opposite.
+ * It is not hypothetical: a local test run exhausted the plan while the
+ * deployed site was serving, and production started failing. Local work must
+ * not be able to starve production out of a shared budget, so the default is
+ * small on both sides and a long-lived server has to ask for more.
  */
 function poolMax(env: Record<string, string | undefined>): number {
   const explicit = Number(env.DATABASE_POOL_MAX);
@@ -68,7 +71,7 @@ function poolMax(env: Record<string, string | undefined>): number {
   // VERCEL is set on their build and runtime; AWS_LAMBDA_FUNCTION_NAME covers
   // the general case of a function-per-request platform.
   const serverless = Boolean(env.VERCEL || env.AWS_LAMBDA_FUNCTION_NAME);
-  return serverless ? 3 : 10;
+  return serverless ? 3 : 4;
 }
 
 /** connectionString + ssl + pool size, all agreeing with each other. */

@@ -167,8 +167,13 @@ export async function rankCreatorsSemantic(
 
   // One request for both sides: the creator half is almost always a cache hit,
   // so what actually goes to the model is the handful of new ICP lines.
+  //
+  // .catch() as well as the null check: the cache reaches Redis and the model
+  // reaches Cloudflare, and either can throw rather than return. This screen
+  // must render from the database alone if both are gone — a ranking that is
+  // slightly worse is a product; a 500 is not.
   const creatorTexts = creators.map(creatorText);
-  const vectors = await embedCached([...icps, ...creatorTexts]);
+  const vectors = await embedCached([...icps, ...creatorTexts]).catch(() => null);
   if (!vectors) return { matches: rankCreators(creators, brand, limit), method: "lexical" };
 
   const icpVectors = vectors.slice(0, icps.length);

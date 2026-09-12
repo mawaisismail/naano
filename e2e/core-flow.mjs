@@ -27,7 +27,15 @@ const CREATOR = `creator-${stamp}@example.com`;
 const PW = "correcthorse7";
 
 let pass = 0, fail = 0;
-const ok = (n, c, e = "") => { c ? (pass++, console.log(`  ok   ${n}`)) : (fail++, console.log(`  FAIL ${n} ${e}`)); };
+const ok = (n, c, e = "") => {
+  if (c) {
+    pass++;
+    console.log(`  ok   ${n}`);
+  } else {
+    fail++;
+    console.log(`  FAIL ${n} ${e}`);
+  }
+};
 
 const browser = await chromium.launch();
 
@@ -65,7 +73,6 @@ ok("the creator is not in the marketplace before signing up", !(await brand.cont
 console.log("\n— creator signs up and builds a card");
 const creatorCtx = await browser.newContext();
 const creator = await creatorCtx.newPage();
-const CREATOR_NAME = `Kai Lindberg ${stamp}`;
 await signUp(creator, "influencer", "Kai", `Lindberg${stamp}`, CREATOR);
 
 await creator.waitForSelector("text=Add your public LinkedIn profile", { timeout: 20000 });

@@ -20,6 +20,11 @@ import { conversationsFor } from "@/lib/messages";
 import { LiveStatsProvider, LiveCount, LivePulse } from "@/components/app/LiveStats";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * The overview ranks creators too, so it can make the same model call.
+ */
+export const maxDuration = 60;
 export const metadata = { title: "Overview — Naano" };
 
 /**

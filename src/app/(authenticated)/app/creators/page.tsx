@@ -6,6 +6,13 @@ import { prisma } from "@/lib/db";
 import { MatchingScreen } from "./MatchingScreen";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Ranking embeds the ICPs and every creator on a cold cache, which is a
+ * call to the model. The platform default of ten seconds cuts that off and
+ * serves an error for a request that was working.
+ */
+export const maxDuration = 60;
 export const metadata = { title: "Creators — Naano" };
 
 /**

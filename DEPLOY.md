@@ -43,9 +43,11 @@ without repeating the secrets.
 | `CLOUDFLARE_ACCOUNT_ID` | Workers AI account. |
 | `CLOUDFLARE_API_TOKEN` | Workers AI token, "Workers AI: Read" and nothing else. Without it, matching falls back to word overlap and says so. |
 
-`DATABASE_POOL_MAX` is optional: it defaults to 3 on Vercel, because every
-concurrent request is its own instance with its own pool and the plan allows 20
-connections in total. Raise it only if you know the instance count is low.
+`DATABASE_POOL_MAX` is optional: 3 on Vercel, 4 anywhere else. The plan allows
+**20 connections in total**, shared by every serverless instance, every local
+dev server, every test run and every one-off script — so a busy local session
+can and does take the site down. If that happens, stop the local processes and
+it recovers on its own. Raise this only if you know the instance count is low.
 
 ## 3. DNS
 
