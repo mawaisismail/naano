@@ -28,6 +28,7 @@ export default async function DealsPage({
         orderBy: { createdAt: "asc" },
         include: {
           campaign: { select: { id: true, name: true } },
+          creator: true,
           _count: { select: { clicks: true } },
         },
       })
@@ -90,10 +91,10 @@ export default async function DealsPage({
                 <div className="min-w-52 flex-1">
                   <div className="flex flex-wrap items-center gap-3">
                     <Link
-                      href={`/creators/${d.creatorSlug}`}
+                      href={`/creators/${d.creator.creatorSlug}`}
                       className="text-[15px] font-bold text-[#111827] hover:text-[#2563eb]"
                     >
-                      {d.creatorName}
+                      {d.creator.name}
                     </Link>
                     <StatusPill status={d.status} />
                   </div>

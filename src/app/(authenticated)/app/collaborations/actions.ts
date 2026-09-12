@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireBrand } from "@/lib/session";
-import { STAGES, stageIndex, isTerminal, type Stage } from "@/lib/lifecycle";
+import { STAGES, stageIndex, isTerminal, canAdvance, type Stage } from "@/lib/lifecycle";
 
 async function touch(campaignId: string) {
   revalidatePath("/app");
@@ -25,6 +25,11 @@ export async function advanceDeal(dealId: string) {
   if (!deal || deal.campaign.brandId !== brand.id) return;
   if (isTerminal(deal.status)) return;
 
+  // Owning the campaign is not the same as owning this step. A brand cannot
+  // accept on the creator's behalf, and cannot publish a post it does not
+  // control — see ownerOf() for why that distinction is the product.
+  if (!canAdvance(deal.status, deal.initiatedBy, "brand")) return;
+
   const next: Stage = STAGES[Math.min(stageIndex(deal.status) + 1, STAGES.length - 1)];
 
   await prisma.deal.update({
@@ -39,7 +44,7 @@ export async function advanceDeal(dealId: string) {
   await touch(deal.campaignId);
 }
 
-/** Creator turned the booking down. Terminal, and not part of the line. */
+/** The brand turns down an application, or withdraws its own invitation. */
 export async function declineDeal(dealId: string) {
   const brand = await requireBrand();
   if (!brand) redirect("/login");

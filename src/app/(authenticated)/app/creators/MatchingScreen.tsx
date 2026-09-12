@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ArrowUp, Info, Sparkles, Store } from "lucide-react";
 import { compact, euro } from "@/lib/format";
+import { InviteButton } from "./InviteButton";
 
 /**
  * The AI Matching screen. Client-side only for the prompt box and the
@@ -14,6 +15,10 @@ import { compact, euro } from "@/lib/format";
 
 export type MatchCard = {
   id: string;
+  /** The creator's user id — what a booking points at. */
+  userId: string;
+  /** Already on one of this brand's campaigns. */
+  invited: boolean;
   slug: string;
   name: string;
   headline: string;
@@ -45,12 +50,15 @@ export function MatchingScreen({
   icps,
   matches,
   method,
+  campaigns,
 }: {
   company: string;
   query: string;
   view: "matching" | "marketplace";
   icps: string[];
   matches: MatchCard[];
+  /** The brand's campaigns a creator can be invited onto. */
+  campaigns: { id: string; name: string }[];
   /** Which ranking actually produced this list. Shown, not hidden. */
   method: "embeddings" | "lexical";
 }) {
@@ -170,6 +178,17 @@ export function MatchingScreen({
       </div>
 
       {/* ------------------------------------------------------------ cards */}
+      {shown.length === 0 ? (
+        <div className="mt-5 grid place-items-center rounded-[18px] border border-dashed border-[#D7DCE5] bg-white p-16 text-center">
+          <p className="text-sm font-semibold text-[#111827]">No creators yet</p>
+          <p className="mt-2 max-w-[460px] text-sm leading-6 text-[#6B7280]">
+            The marketplace is whoever has finished a creator card. Nobody has
+            yet, so there is nothing to rank — this fills in as creators sign
+            up, and your ICPs are already saved for when they do.
+          </p>
+        </div>
+      ) : null}
+
       <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {shown.map((c) => (
           <article key={c.id} className="flex flex-col rounded-[18px] border border-[#E5E7EB] bg-white p-5">
@@ -208,12 +227,21 @@ export function MatchingScreen({
                 {euro(c.postCost)}
                 <span className="ml-1 text-[12px] font-medium text-[#9CA3AF]">/ post</span>
               </span>
-              <Link
-                href={`/creators/${c.slug}`}
-                className="rounded-[10px] bg-[#2563eb] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#1D4ED8]"
-              >
-                View card
-              </Link>
+              <span className="flex items-center gap-2">
+                <Link
+                  href={`/creators/${c.slug}`}
+                  className="rounded-[10px] border border-[#E5E7EB] px-3.5 py-2 text-[13px] font-semibold text-[#111827] transition-colors hover:border-[#9CA3AF]"
+                >
+                  View card
+                </Link>
+                <InviteButton
+                  creatorId={c.userId}
+                  creatorName={c.name}
+                  price={c.postCost}
+                  campaigns={campaigns}
+                  alreadyInvited={c.invited}
+                />
+              </span>
             </div>
           </article>
         ))}

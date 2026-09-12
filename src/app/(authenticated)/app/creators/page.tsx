@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { rankCreatorsSemantic } from "@/lib/matching";
+import { allCreators } from "@/lib/creator-profile";
+import { prisma } from "@/lib/db";
 import { MatchingScreen } from "./MatchingScreen";
 
 export const dynamic = "force-dynamic";
@@ -27,10 +29,25 @@ export default async function CreatorsPage({
   // The typed prompt is treated as a fourth ICP, so the ranking that answers it
   // is the same ranking that produced the default list.
   const icps = q?.trim() ? [...user.icps, q.trim()] : user.icps;
+  const [creators, campaigns, invited] = await Promise.all([
+    allCreators(),
+    prisma.campaign.findMany({
+      where: { brandId: user.id, status: { not: "complete" } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true },
+    }),
+    prisma.deal.findMany({
+      where: { campaign: { brandId: user.id }, status: { not: "declined" } },
+      select: { creatorId: true },
+    }),
+  ]);
+
   const { matches, method } = await rankCreatorsSemantic(
+    creators,
     { icps, valueProp: user.valueProp },
     24
   );
+  const invitedIds = new Set(invited.map((d) => d.creatorId));
 
   return (
     <MatchingScreen
@@ -39,7 +56,12 @@ export default async function CreatorsPage({
       view={view === "marketplace" ? "marketplace" : "matching"}
       method={method}
       icps={user.icps}
+      campaigns={campaigns}
       matches={matches.map(({ creator, score, reasons, matched, total }) => ({
+        // The card id is derived from the user id, and the booking needs the
+        // user id itself — see toCreator().
+        userId: creator.id.replace(/^usr_/, ""),
+        invited: invitedIds.has(creator.id.replace(/^usr_/, "")),
         id: creator.id,
         slug: creator.slug,
         name: creator.name,

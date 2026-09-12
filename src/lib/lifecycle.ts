@@ -46,3 +46,38 @@ export const isTerminal = (s: string) => s === "paid" || s === "declined";
  */
 export const isCommitted = (status: string) =>
   status !== "invited" && status !== "declined";
+
+/**
+ * Who is allowed to move a booking out of each stage.
+ *
+ * This is the rule that makes the two sides a marketplace rather than one
+ * party filling in a form about the other. The brand used to press "Mark
+ * accepted" on the creator's behalf, and "Publish" on a post it cannot
+ * publish, which meant a booking could reach "live" without the creator ever
+ * touching it.
+ *
+ * "invited" is the exception: it belongs to whichever side did NOT open the
+ * conversation, which is why a deal records who initiated it.
+ */
+export type Side = "brand" | "creator";
+
+export function ownerOf(status: string, initiatedBy: string): Side | null {
+  switch (status) {
+    case "invited":
+      return initiatedBy === "brand" ? "creator" : "brand";
+    case "accepted":
+    case "draft":
+    case "scheduled":
+      // Writing, scheduling and publishing the post are the creator's.
+      return "creator";
+    case "live":
+      // Only the brand can release the money.
+      return "brand";
+    default:
+      // paid and declined are terminal.
+      return null;
+  }
+}
+
+export const canAdvance = (status: string, initiatedBy: string, side: Side) =>
+  ownerOf(status, initiatedBy) === side;

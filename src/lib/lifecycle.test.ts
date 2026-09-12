@@ -6,6 +6,8 @@ import {
   stageIndex,
   isTerminal,
   isCommitted,
+  ownerOf,
+  canAdvance,
 } from "./lifecycle";
 
 /** Mirrors advanceDeal()'s transition rule. */
@@ -73,5 +75,43 @@ describe("isCommitted", () => {
   it("does not count an unanswered invitation or a decline", () => {
     expect(isCommitted("invited")).toBe(false);
     expect(isCommitted("declined")).toBe(false);
+  });
+});
+
+describe("who may advance a booking", () => {
+  it("lets the invited side answer, never the side that invited", () => {
+    expect(ownerOf("invited", "brand")).toBe("creator");
+    expect(ownerOf("invited", "creator")).toBe("brand");
+  });
+
+  it("gives the creator the stages that are the creator's work", () => {
+    for (const s of ["accepted", "draft", "scheduled"]) {
+      expect(ownerOf(s, "brand")).toBe("creator");
+      expect(ownerOf(s, "creator")).toBe("creator");
+    }
+  });
+
+  it("gives the brand the payout", () => {
+    expect(ownerOf("live", "brand")).toBe("brand");
+  });
+
+  it("gives nobody a terminal booking", () => {
+    expect(ownerOf("paid", "brand")).toBeNull();
+    expect(ownerOf("declined", "creator")).toBeNull();
+  });
+
+  it("stops a brand accepting its own invitation", () => {
+    // The failure this prevents: a brand books a creator who never agreed.
+    expect(canAdvance("invited", "brand", "brand")).toBe(false);
+    expect(canAdvance("invited", "brand", "creator")).toBe(true);
+  });
+
+  it("stops a creator accepting their own application", () => {
+    expect(canAdvance("invited", "creator", "creator")).toBe(false);
+    expect(canAdvance("invited", "creator", "brand")).toBe(true);
+  });
+
+  it("stops a brand publishing a post it cannot publish", () => {
+    expect(canAdvance("scheduled", "creator", "brand")).toBe(false);
   });
 });
