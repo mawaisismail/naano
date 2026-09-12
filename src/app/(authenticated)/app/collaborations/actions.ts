@@ -8,7 +8,7 @@ import { STAGES, stageIndex, isTerminal, type Stage } from "@/lib/lifecycle";
 
 async function touch(campaignId: string) {
   revalidatePath("/app");
-  revalidatePath("/app/deals");
+  revalidatePath("/app/collaborations");
   revalidatePath("/app/campaigns");
   revalidatePath(`/app/campaigns/${campaignId}`);
 }

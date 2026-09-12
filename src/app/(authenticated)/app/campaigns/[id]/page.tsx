@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
-import { euro, compact } from "@/lib/format";
+import { euro } from "@/lib/format";
 import { StatusPill } from "@/components/app/StatusPill";
-import { advanceDeal } from "@/app/(authenticated)/app/deals/actions";
+import { advanceDeal } from "@/app/(authenticated)/app/collaborations/actions";
 import { CopyLink } from "@/components/app/CopyLink";
 import { SubmitButton } from "@/components/app/SubmitButton";
 import { LiveStatsProvider, LiveCount, LiveSum, LivePulse } from "@/components/app/LiveStats";
@@ -44,29 +44,29 @@ export default async function CampaignDetail({
 
   return (
     <LiveStatsProvider initial={{ total: clicks, byDeal }}>
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <Link href="/app/campaigns" className="text-sm font-medium text-muted hover:text-ink">
+    <div className="px-8 pb-16 pt-2">
+      <Link href="/app/campaigns" className="text-sm font-medium text-[#6B7280] hover:text-[#111827]">
         ← Campaigns
       </Link>
 
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="font-display text-3xl font-extrabold text-ink">{campaign.name}</h1>
+            <h1 className="text-[36px] font-bold tracking-[-0.02em] text-[#111827]">{campaign.name}</h1>
             <StatusPill status={campaign.status} />
           </div>
-          <p className="mt-2 max-w-2xl text-muted">{campaign.objective}</p>
+          <p className="mt-2 max-w-2xl text-[15px] text-[#6B7280]">{campaign.objective}</p>
         </div>
       </div>
 
       {/* ----------------------------------------------------------- headline */}
       <div className="mt-8 grid gap-4 sm:grid-cols-4">
-        <div className="nn-card p-5">
+        <div className="rounded-[18px] border border-[#E5E7EB] bg-white p-5">
           <div className="flex items-center justify-between">
-            <div className="nn-eyebrow">Clicks attributed</div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6B7280]">Clicks attributed</div>
             <LivePulse />
           </div>
-          <div className="mt-1.5 font-display text-3xl font-extrabold text-brand">
+          <div className="mt-2 text-[30px] font-bold tracking-[-0.02em] text-[#2563eb]">
             <LiveSum dealIds={dealIds} initial={clicks} />
           </div>
         </div>
@@ -77,36 +77,36 @@ export default async function CampaignDetail({
 
       {/* -------------------------------------------------------------- deals */}
       <section className="mt-10">
-        <h2 className="font-display text-lg font-bold text-ink">Creators</h2>
-        <p className="mt-1 text-sm text-muted">
+        <h2 className="text-lg font-bold text-[#111827]">Creators</h2>
+        <p className="mt-1 text-sm text-[#6B7280]">
           Each creator has their own tracked link, so clicks attribute to the person
           who drove them.
         </p>
 
         <div className="mt-5 space-y-3">
           {campaign.deals.map((d) => (
-            <div key={d.id} className="nn-card p-5">
+            <div key={d.id} className="rounded-[18px] border border-[#E5E7EB] bg-white p-5">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-48 flex-1">
                   <div className="flex items-center gap-3">
                     <Link
                       href={`/creators/${d.creatorSlug}`}
-                      className="font-display font-bold text-ink hover:text-brand"
+                      className="text-[15px] font-bold text-[#111827] hover:text-[#2563eb]"
                     >
                       {d.creatorName}
                     </Link>
                     <StatusPill status={d.status} />
                   </div>
-                  <div className="mt-1 text-xs text-muted">{euro(d.price)} per post</div>
+                  <div className="mt-1 text-[13px] text-[#6B7280]">{euro(d.price)} per post</div>
                 </div>
 
                 <CopyLink code={d.trackingCode} />
 
                 <div className="text-right">
-                  <div className="font-display text-2xl font-extrabold text-brand">
+                  <div className="text-2xl font-bold text-[#2563eb]">
                     <LiveCount dealId={d.id} initial={d._count.clicks} />
                   </div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-grey">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
                     clicks
                   </div>
                 </div>
@@ -137,9 +137,9 @@ export default async function CampaignDetail({
 
 function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="nn-card p-5">
-      <div className="nn-eyebrow">{label}</div>
-      <div className={`mt-1.5 font-display text-3xl font-extrabold ${highlight ? "text-brand" : "text-ink"}`}>
+    <div className="rounded-[18px] border border-[#E5E7EB] bg-white p-5">
+      <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6B7280]">{label}</div>
+      <div className={`mt-2 text-[30px] font-bold tracking-[-0.02em] ${highlight ? "text-[#2563eb]" : "text-[#111827]"}`}>
         {value}
       </div>
     </div>
@@ -149,12 +149,12 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
 function BriefBlock({ title, body }: { title: string; body: string }) {
   const lines = body.split("\n").filter(Boolean);
   return (
-    <div className="nn-card p-6">
-      <div className="nn-eyebrow">{title}</div>
+    <div className="rounded-[18px] border border-[#E5E7EB] bg-white p-6">
+      <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6B7280]">{title}</div>
       <ul className="mt-3 space-y-2">
         {lines.map((l, i) => (
-          <li key={i} className="flex gap-2 text-sm leading-relaxed text-ink">
-            <span className="mt-1.5 size-1 shrink-0 rounded-full bg-brand" />
+          <li key={i} className="flex gap-2 text-sm leading-relaxed text-[#111827]">
+            <span className="mt-1.5 size-1 shrink-0 rounded-full bg-[#2563eb]" />
             {l}
           </li>
         ))}

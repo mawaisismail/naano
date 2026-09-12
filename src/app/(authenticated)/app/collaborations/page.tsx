@@ -45,19 +45,19 @@ export default async function DealsPage({
   const total = counts.reduce((s, c) => s + c._count.status, 0);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <h1 className="font-display text-3xl font-extrabold text-ink">Deals</h1>
-      <p className="mt-1.5 text-sm text-muted">
+    <div className="px-8 pb-16 pt-8">
+      <h1 className="text-[40px] font-bold tracking-[-0.02em] text-[#111827]">Collaborations</h1>
+      <p className="mt-2 text-[15px] text-[#6B7280]">
         Every booking, and where it sits in the lifecycle.
       </p>
 
       {/* ------------------------------------------------------------ filters */}
       <div className="mt-6 flex flex-wrap gap-2">
-        <Chip href="/app/deals" on={!filter} label="All" count={total} />
+        <Chip href="/app/collaborations" on={!filter} label="All" count={total} />
         {STAGES.map((s) => (
           <Chip
             key={s}
-            href={`/app/deals?status=${s}`}
+            href={`/app/collaborations?status=${s}`}
             on={filter === s}
             label={STAGE_LABEL[s]}
             count={countOf(s)}
@@ -65,7 +65,7 @@ export default async function DealsPage({
         ))}
         {countOf("declined") > 0 && (
           <Chip
-            href="/app/deals?status=declined"
+            href="/app/collaborations?status=declined"
             on={filter === "declined"}
             label="Declined"
             count={countOf("declined")}
@@ -74,32 +74,34 @@ export default async function DealsPage({
       </div>
 
       {deals.length === 0 ? (
-        <div className="nn-card mt-8 grid place-items-center p-16 text-center">
-          <p className="font-display font-bold text-ink">Nothing here</p>
-          <p className="mt-1.5 text-sm text-muted">
-            {filter ? "No deals at this stage." : "Book creators to create deals."}
+        <div className="mt-8 grid place-items-center rounded-[18px] border border-dashed border-[#D7DCE5] bg-white p-16 text-center">
+          <p className="text-sm font-semibold text-[#111827]">Nothing here</p>
+          <p className="mt-2 max-w-[460px] text-sm leading-6 text-[#6B7280]">
+            {filter
+              ? "No collaborations at this stage."
+              : "Book a creator from AI Matching and the booking appears here."}
           </p>
         </div>
       ) : (
         <div className="mt-6 space-y-3">
           {deals.map((d) => (
-            <div key={d.id} className="nn-card p-5">
+            <div key={d.id} className="rounded-[18px] border border-[#E5E7EB] bg-white p-5">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-52 flex-1">
                   <div className="flex flex-wrap items-center gap-3">
                     <Link
                       href={`/creators/${d.creatorSlug}`}
-                      className="font-display font-bold text-ink hover:text-brand"
+                      className="text-[15px] font-bold text-[#111827] hover:text-[#2563eb]"
                     >
                       {d.creatorName}
                     </Link>
                     <StatusPill status={d.status} />
                   </div>
-                  <div className="mt-1 text-xs text-muted">
+                  <div className="mt-1 text-[13px] text-[#6B7280]">
                     {euro(d.price)} ·{" "}
                     <Link
                       href={`/app/campaigns/${d.campaign.id}`}
-                      className="hover:text-ink"
+                      className="hover:text-[#111827]"
                     >
                       {d.campaign.name}
                     </Link>
@@ -112,10 +114,10 @@ export default async function DealsPage({
                 <div className="flex flex-wrap items-center gap-3">
                   <CopyLink code={d.trackingCode} />
                   <div className="text-right">
-                    <div className="font-display text-xl font-extrabold text-brand">
+                    <div className="text-xl font-bold text-[#2563eb]">
                       {d._count.clicks}
                     </div>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-grey">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
                       clicks
                     </div>
                   </div>
@@ -168,14 +170,14 @@ function Chip({
     <Link
       href={href}
       className={cx(
-        "rounded-full border px-3.5 py-1.5 text-xs font-semibold transition",
+        "rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors",
         on
-          ? "border-brand bg-brand text-white"
-          : "border-line bg-white text-muted hover:border-grey hover:text-ink"
+          ? "border-[#2563eb] bg-[#2563eb] text-white"
+          : "border-[#E5E7EB] bg-white text-[#4B5563] hover:border-[#9CA3AF] hover:text-[#111827]"
       )}
     >
       {label}
-      <span className={cx("ml-1.5", on ? "text-white/60" : "text-grey")}>{count}</span>
+      <span className={cx("ml-1.5", on ? "text-white/60" : "text-[#9CA3AF]")}>{count}</span>
     </Link>
   );
 }

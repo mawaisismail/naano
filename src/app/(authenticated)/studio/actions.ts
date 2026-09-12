@@ -22,7 +22,7 @@ async function ownDeal(dealId: string) {
 
 function touch() {
   revalidatePath("/studio");
-  revalidatePath("/app/deals");
+  revalidatePath("/app/collaborations");
   revalidatePath("/app");
 }
 
